@@ -84,12 +84,20 @@ html, body {
   flex-shrink: 0;
 }
 
-.brand-logo {
-  display: block;
-  height: 28px;
-  width: auto;
-  max-width: min(200px, 55vw);
-  object-fit: contain;
+.logo-text {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--text-main);
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.logo-highlight {
+  color: var(--accent-orange);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.4);
 }
 
 .desktop-nav {
