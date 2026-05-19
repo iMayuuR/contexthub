@@ -8,16 +8,19 @@ import { timelineCommand } from './commands/timeline';
 import { searchCommand } from './commands/search';
 import { setupCommand } from './commands/setup';
 import { stopCommand } from './commands/stop';
-import { ContextHubCore } from '@contexthub/core';
+import { readFileSync } from 'fs';
 import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+
+const pkg = JSON.parse(
+  readFileSync(join(__dirname, '..', 'package.json'), 'utf8')
+) as { version: string };
 
 const program = new Command();
 
 program
   .name('contexthub')
-  .description('ContextHub - persistent AI memory + context orchestration layer')
-  .version('0.1.0');
+  .description('ContextHub MCP server launcher — encrypted memory for AI coding agents')
+  .version(pkg.version);
 
 // Initialize ContextHub in a repository
 program

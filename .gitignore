@@ -9,6 +9,12 @@ build/
 
 # Generated files
 .contexthub/
+.contexthub/graph/
+**/graph-snapshot.json.tmp
+
+# Local-only prompt overrides (canonical: docs/IMPLEMENTATION_PROMPT.md)
+docs/IMPLEMENTATION_PROMPT.local.md
+.private/
 # Defense-in-depth: explicitly ignore security-sensitive files
 # even if .contexthub/ is removed from gitignore
 **/.keyfile

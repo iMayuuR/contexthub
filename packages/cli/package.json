@@ -1,25 +1,52 @@
 {
   "name": "@contexthub/cli",
   "version": "1.0.0",
-  "description": "ContextHub CLI",
+  "description": "ContextHub MCP server launcher — setup, start, stop, and memory management",
+  "author": "Mayur Dattatray Patil",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/iMayuuR/contexthub/issues"
+  },
+  "homepage": "https://github.com/iMayuuR/contexthub#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "contexthub": "./dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "contexthub",
+    "mcp",
+    "ai-memory",
+    "cursor",
+    "claude"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsc && node -e \"require('fs').cpSync('src/templates','dist/templates',{recursive:true})\"",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "file:../core",
-    "@contexthub/shared-types": "file:../shared-types",
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/mcp-server": "^1.0.0",
+    "@contexthub/shared-types": "^1.0.0",
+    "chalk": "^5.0.0",
     "commander": "^10.0.0",
     "inquirer": "^9.0.0",
-    "chalk": "^5.0.0",
     "ora": "^6.0.0"
   },
   "devDependencies": {

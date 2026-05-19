@@ -1,8 +1,7 @@
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore, SecurityManager } from '@contexthub/core';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
-import { spawnSync } from 'child_process';
-import { log } from 'console';
+import { installAgentIntegrations } from '../agent-integrations/install';
 
 export async function initContextHub(): Promise<void> {
   try {
@@ -54,7 +53,13 @@ module.exports = {
 
     // Initialize the core storage (which will create the SQLite database)
     const core = new ContextHubCore(currentDir);
-    await core.initStorage(); // We'll need to add this method to ContextHubCore
+    await core.initStorage();
+    await core.close();
+
+    const security = new SecurityManager(currentDir);
+    security.setSecurePermissions(contexthubDir, true);
+    security.generateAuthToken();
+    installAgentIntegrations(currentDir, security);
 
     console.log('ContextHub initialized successfully!');
     console.log(`Configuration file created at ${configPath}`);

@@ -1,7 +1,19 @@
 {
   "name": "@contexthub/repo-parser",
   "version": "1.0.0",
-  "description": "Repository parser for ContextHub",
+  "description": "Sandboxed repository code analysis for ContextHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/repo-parser"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,14 +21,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/shared-types": "file:../shared-types",
+    "@contexthub/shared-types": "^1.0.0",
     "glob": "^10.0.0"
   },
   "devDependencies": {
-    "@types/glob": "^8.0.0",
     "@types/node": "^18.0.0",
     "typescript": "^5.0.0"
   }

@@ -13,6 +13,8 @@ import { ContextHubCore, SecurityManager } from "@contexthub/core";
 import { join } from "path";
 import { existsSync, writeFileSync } from "fs";
 import { spawn } from "child_process";
+import { resolveMcpServerEntry } from "../resolve-mcp-server";
+import { installAgentIntegrations } from "../agent-integrations/install";
 
 export async function setupCommand(options: any = {}): Promise<void> {
   try {
@@ -38,14 +40,30 @@ export async function setupCommand(options: any = {}): Promise<void> {
     security.generateAuthToken(); // Token saved to .contexthub/.auth-token — never printed
     console.log("✅ Auth token generated and saved to .contexthub/.auth-token");
 
+    // Step 2b: Agent integrations (rules, MCP config, Cursor hooks)
+    console.log("🤖 Installing secure auto-memory for all agents...");
+    const installed = installAgentIntegrations(currentDir, security);
+    console.log("✅ Agent integrations:");
+    if (installed.cursorRule) console.log("   • .cursor/rules/contexthub-auto-memory.mdc");
+    if (installed.cursorMcp) console.log("   • .cursor/mcp.json (contexthub server entry)");
+    if (installed.cursorHooks) console.log("   • .cursor/hooks (stop/sessionEnd → encrypted save)");
+    if (installed.agentsMd) console.log("   • AGENTS.md section");
+    if (installed.claudeMd) console.log("   • CLAUDE.md section");
+    console.log("   • .contexthub/agent-policy.md");
+
     // Step 3: Start MCP server in background with PID tracking
     console.log("🔌 Starting MCP server in background...");
 
-    const mcpServerDist = join(currentDir, "packages", "mcp-server", "dist", "index.js");
-    if (!existsSync(mcpServerDist)) {
-      console.log("⚠️  MCP server not built. Please run 'npm run build' first.");
-      console.log("   Then run 'contexthub start' to start the server.");
-    } else {
+    let mcpServerDist: string | undefined;
+    try {
+      mcpServerDist = resolveMcpServerEntry();
+    } catch (err: any) {
+      const safeMsg = String(err?.message || "MCP server not found").replace(/\/[^\s]+/g, "[path]");
+      console.log(`⚠️  ${safeMsg}`);
+      console.log("   Reinstall: npm install -g @contexthub/cli");
+    }
+
+    if (mcpServerDist) {
       const serverProcess = spawn("node", [mcpServerDist], {
         cwd: currentDir,
         detached: true,
@@ -76,11 +94,14 @@ export async function setupCommand(options: any = {}): Promise<void> {
     console.log("  • Input validation enabled on all MCP tool parameters");
     console.log("  • Shell profile is NOT modified (no command capture)");
 
+    console.log("\n💡 Auto-memory is ON (secure):");
+    console.log("  • MCP tools: ensure_session → record_turn each meaningful turn");
+    console.log("  • Cursor: rules + hooks installed (commit .cursor/ to share with team)");
+    console.log("  • Claude Code / others: see AGENTS.md and CLAUDE.md sections");
     console.log("\n💡 Next steps:");
-    console.log("  1. Run 'contexthub memory --list' to see saved memories");
-    console.log("  2. Run 'contexthub stop' to cleanly stop the MCP server");
-    console.log("  3. Set CONTEXTHUB_TOKEN env var to enable auth on MCP tools");
-    console.log("  4. AI agents connect via MCP stdio transport (not HTTP)");
+    console.log("  1. Reload Cursor / restart Claude Code to pick up MCP + rules");
+    console.log("  2. contexthub memory --list  — verify saves");
+    console.log("  3. contexthub stop  — stop background server when done");
   } catch (error: any) {
     const safeMsg = String(error?.message || "Unknown error").replace(/\/[^\s]+/g, "[path]");
     console.error("❌ Failed to setup ContextHub:", safeMsg);

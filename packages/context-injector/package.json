@@ -1,7 +1,19 @@
 {
   "name": "@contexthub/context-injector",
   "version": "1.0.0",
-  "description": "Context injection engine for ContextHub",
+  "description": "Context retrieval and prompt enhancement for ContextHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/context-injector"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,13 +21,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "file:../core",
-    "@contexthub/shared-types": "file:../shared-types",
-    "@contexthub/vector-engine": "file:../vector-engine",
-    "@contexthub/repo-parser": "file:../repo-parser"
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/repo-parser": "^1.0.0",
+    "@contexthub/shared-types": "^1.0.0",
+    "@contexthub/vector-engine": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

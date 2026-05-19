@@ -21,7 +21,23 @@ node packages/cli/dist/index.js setup
 1. ContextHub creates encrypted storage in `.contexthub/`
 2. MCP server starts in background with PID tracking
 3. Encryption key + auth token auto-generated
-4. No shell modification — your `.bashrc`/`.zshrc` is untouched
+4. **Secure auto-memory** — agent rules + Cursor hooks installed (see below)
+5. No shell modification — your `.bashrc`/`.zshrc` is untouched
+
+### Secure auto-memory (hands-free)
+
+After `setup`, agents are instructed to call MCP tools automatically:
+
+| Step | MCP tool |
+|------|----------|
+| Session start | `ensure_session` |
+| Before work | `get_project_context` |
+| After each meaningful turn | `record_turn` |
+| Session end | `end_session` |
+
+**Installed files:** `.cursor/rules/`, `.cursor/mcp.json`, `.cursor/hooks/`, `AGENTS.md`, `CLAUDE.md`, `.contexthub/agent-policy.md`
+
+Secrets are auto-redacted; storage is AES-256-GCM encrypted.
 
 ---
 

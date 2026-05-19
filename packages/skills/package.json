@@ -1,7 +1,19 @@
 {
   "name": "@contexthub/skills",
-  "version": "0.1.0",
-  "description": "Skills system for ContextHub - reusable AI skill modules",
+  "version": "1.0.0",
+  "description": "Built-in skills for ContextHub MCP server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/skills"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,13 +21,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "file:../core",
-    "@contexthub/shared-types": "file:../shared-types",
-    "gray-matter": "^4.0.0",
-    "front-matter": "^4.0.2"
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/shared-types": "^1.0.0",
+    "front-matter": "^4.0.2",
+    "gray-matter": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

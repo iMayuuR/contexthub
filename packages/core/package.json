@@ -1,7 +1,19 @@
 {
   "name": "@contexthub/core",
   "version": "1.0.0",
-  "description": "Core ContextHub engine",
+  "description": "Core ContextHub engine — encrypted memory and security",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,10 +21,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/shared-types": "file:../shared-types"
+    "@contexthub/shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.7.0",

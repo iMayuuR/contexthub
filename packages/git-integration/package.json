@@ -2,6 +2,18 @@
   "name": "@contexthub/git-integration",
   "version": "1.0.0",
   "description": "Git integration for ContextHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/git-integration"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,11 +21,12 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "file:../core",
-    "@contexthub/shared-types": "file:../shared-types",
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/shared-types": "^1.0.0",
     "simple-git": "^3.0.0"
   },
   "devDependencies": {

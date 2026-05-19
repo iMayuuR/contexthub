@@ -2,11 +2,13 @@
   "name": "contexthub",
   "version": "0.1.0",
   "description": "ContextHub - persistent AI memory + context orchestration layer for coding agents",
+  "author": "Mayur Dattatray Patil",
   "private": true,
   "scripts": {
     "dev": "npm run build && npm run dev --workspace=packages/core --workspace=packages/cli",
     "build": "npm run build --workspace=packages/shared-types && npm run build --workspace=packages/core && npm run build --workspace=packages/mcp-server && npm run build --workspace=packages/cli",
-    "test": "echo \"Tests passed (security hardened build)\""
+    "test": "echo \"Tests passed (security hardened build)\"",
+    "publish:packages": "node scripts/publish-packages.js"
   },
   "devDependencies": {
     "@types/node": "^25.7.0",

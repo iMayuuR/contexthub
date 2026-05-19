@@ -10,36 +10,26 @@
  */
 
 import { spawn } from 'child_process';
-import { join, resolve } from 'path';
-import { existsSync, writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { existsSync, writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { SecurityManager } from '@contexthub/core';
+import { resolveMcpServerEntry } from '../resolve-mcp-server';
 
 export async function startServer(port: number): Promise<void> {
   try {
     const currentDir = process.cwd();
     const security = new SecurityManager(currentDir);
 
-    // Validate port
-    const safePort = security.validatePort(port);
+    security.validatePort(port);
 
-    // Resolve MCP server path safely — within the current project
-    const mcpServerIndex = join(currentDir, 'packages', 'mcp-server', 'dist', 'index.js');
+    const mcpServerIndex = resolveMcpServerEntry();
 
-    // Validate the path stays within repo
-    security.validatePath(mcpServerIndex);
-
-    console.log(`Starting ContextHub MCP server on port ${safePort}...`);
-
-    if (!existsSync(mcpServerIndex)) {
-      console.log('⚠️  Built server not found.');
-      console.log('Please build the MCP server first:');
-      console.log('  npm run build');
-      console.log('Then start the server:');
-      console.log('  contexthub start');
-      return;
+    const authPath = join(currentDir, '.contexthub', '.auth-token');
+    if (existsSync(authPath) && !process.env.CONTEXTHUB_TOKEN) {
+      process.env.CONTEXTHUB_TOKEN = readFileSync(authPath, 'utf8').trim();
     }
 
-    console.log('Starting MCP server...');
+    console.log('Starting ContextHub MCP server (stdio transport)...');
     const serverProcess = spawn('node', [mcpServerIndex], {
       cwd: currentDir,
       stdio: 'inherit'

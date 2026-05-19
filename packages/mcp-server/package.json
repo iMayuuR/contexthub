@@ -1,7 +1,20 @@
 {
   "name": "@contexthub/mcp-server",
   "version": "1.0.0",
-  "description": "MCP server for ContextHub",
+  "description": "ContextHub MCP server — encrypted memory and repo intelligence (stdio)",
+  "author": "Mayur Dattatray Patil",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/mcp-server"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,18 +22,19 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "file:../core",
-    "@contexthub/shared-types": "file:../shared-types",
-    "@contexthub/vector-engine": "file:../vector-engine",
-    "@contexthub/repo-parser": "file:../repo-parser",
-    "@contexthub/git-integration": "file:../git-integration",
-    "@contexthub/skills": "file:../skills",
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/git-integration": "^1.0.0",
+    "@contexthub/repo-parser": "^1.0.0",
+    "@contexthub/shared-types": "^1.0.0",
+    "@contexthub/skills": "^1.0.0",
+    "@contexthub/vector-engine": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "simple-git": "^3.0.0",
-    "glob": "^10.0.0"
+    "glob": "^10.0.0",
+    "simple-git": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

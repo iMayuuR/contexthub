@@ -1,7 +1,19 @@
 {
   "name": "@contexthub/agent-connectors",
   "version": "1.0.0",
-  "description": "Agent connectors for ContextHub",
+  "description": "AI agent adapters for ContextHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/agent-connectors"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,11 +21,12 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "file:../core",
-    "@contexthub/shared-types": "file:../shared-types"
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

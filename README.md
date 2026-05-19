@@ -257,6 +257,10 @@ node packages/cli/dist/index.js --help
 
 ---
 
+## Implementation roadmap
+
+Full AI-agent implementation spec (Phase 1–3): [`docs/IMPLEMENTATION_PROMPT.md`](docs/IMPLEMENTATION_PROMPT.md)
+
 ## Roadmap
 
 - [ ] Web Dashboard for memory visualization
@@ -274,7 +278,7 @@ Contributions welcome! Please read our Contributing Guide and submit PRs.
 
 ## License
 
-MIT © ContextHub Contributors
+MIT © 2026 Mayur Dattatray Patil
 
 ---
 

@@ -22,6 +22,12 @@ import { RepoParser } from '@contexthub/repo-parser';
 import { GitIntegration } from '@contexthub/git-integration';
 import { SkillsManager } from '@contexthub/skills';
 import type { MemoryEntry, Session } from '@contexthub/shared-types';
+import { getAgentPolicyMarkdown, AGENT_POLICY_VERSION } from './agent-policy';
+import {
+  readActiveSession,
+  writeActiveSession,
+  clearActiveSession,
+} from './session-state';
 
 let core: ContextHubCore | null = null;
 let security: SecurityManager | null = null;
@@ -94,12 +100,18 @@ async function getProjectContext() {
     typeCounts[mem.type] = (typeCounts[mem.type] || 0) + 1;
   }
 
+  const active = readActiveSession(process.cwd());
+
   return {
     project: metadata,
     recentSessions: sessions,
     memoryStats: typeCounts,
     totalMemories: memories.length,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    activeSession: active,
+    agentPolicyVersion: AGENT_POLICY_VERSION,
+    autoMemoryInstructions:
+      'Call ensure_session at start, record_turn after meaningful turns, get_project_context before work. See get_agent_policy.',
   };
 }
 
@@ -159,7 +171,10 @@ async function saveMemory(sessionId: string, memoryData: {
 
   // Validate inputs
   const sanitizedSessionId = sec.sanitizeInput(sessionId, 50);
-  const sanitizedContent = sec.sanitizeInput(memoryData.content, 51200); // 50KB max
+  let sanitizedContent = sec.sanitizeInput(memoryData.content, 51200); // 50KB max
+  if (sec.isSensitive(sanitizedContent)) {
+    sanitizedContent = sec.redactSensitive(sanitizedContent);
+  }
   const validType = sec.validateMemoryType(memoryData.type || 'manual');
 
   const sanitizedTags = (memoryData.tags || [])
@@ -175,6 +190,99 @@ async function saveMemory(sessionId: string, memoryData: {
     tags: sanitizedTags
   });
   return { id, sessionId: sanitizedSessionId };
+}
+
+async function getAgentPolicy() {
+  return {
+    version: AGENT_POLICY_VERSION,
+    policy: getAgentPolicyMarkdown(),
+  };
+}
+
+async function ensureSession(agent: string, forceNew: boolean = false) {
+  const ctx = getCore();
+  const sec = getSecurity();
+  const repoPath = process.cwd();
+  const sanitizedAgent = sec.sanitizeInput(agent, 100);
+
+  if (!forceNew) {
+    const active = readActiveSession(repoPath);
+    if (active && active.agent === sanitizedAgent) {
+      return { sessionId: active.sessionId, agent: active.agent, resumed: true };
+    }
+  }
+
+  const sessionId = await ctx.createSession(sanitizedAgent, { autoMemory: true });
+  writeActiveSession(
+    repoPath,
+    { sessionId, agent: sanitizedAgent, startedAt: Date.now() },
+    sec
+  );
+  return { sessionId, agent: sanitizedAgent, resumed: false };
+}
+
+async function recordTurn(params: {
+  agent: string;
+  sessionId?: string;
+  promptSummary: string;
+  responseSummary: string;
+  memoryType?: string;
+  tags?: string[];
+}) {
+  const ctx = getCore();
+  const sec = getSecurity();
+  const repoPath = process.cwd();
+
+  const sanitizedAgent = sec.sanitizeInput(params.agent, 100);
+  let sessionId = params.sessionId
+    ? sec.sanitizeInput(params.sessionId, 50)
+    : undefined;
+
+  if (!sessionId) {
+    const active = readActiveSession(repoPath);
+    if (active?.agent === sanitizedAgent) {
+      sessionId = active.sessionId;
+    } else {
+      const ensured = await ensureSession(sanitizedAgent, false);
+      sessionId = ensured.sessionId;
+    }
+  }
+
+  let prompt = sec.sanitizeInput(params.promptSummary, 16000);
+  let response = sec.sanitizeInput(params.responseSummary, 16000);
+  if (sec.isSensitive(prompt)) prompt = sec.redactSensitive(prompt);
+  if (sec.isSensitive(response)) response = sec.redactSensitive(response);
+
+  const extraTags = (params.tags || [])
+    .map((t) => sec.sanitizeInput(t, 100))
+    .filter(Boolean)
+    .slice(0, 18);
+
+  const promptId = await saveMemory(sessionId!, {
+    type: 'prompt',
+    content: prompt,
+    tags: ['prompt', sanitizedAgent, 'auto', ...extraTags],
+  });
+
+  const responseType = sec.validateMemoryType(params.memoryType || 'response');
+  const responseId = await saveMemory(sessionId!, {
+    type: responseType,
+    content: response,
+    tags: ['response', sanitizedAgent, 'auto', ...extraTags],
+  });
+
+  return {
+    sessionId,
+    promptMemoryId: promptId.id,
+    responseMemoryId: responseId.id,
+    saved: true,
+  };
+}
+
+async function endSessionWithCleanup(sessionId: string) {
+  const result = await endSession(sessionId);
+  clearActiveSession(process.cwd());
+  return result;
 }
 
 async function summarizeRepo() {
@@ -461,6 +569,22 @@ async function main() {
   // Register all tools (wrapped with safe error handling)
   server.tool('get_project_context', {}, safeHandler(getProjectContext));
 
+  server.tool('get_agent_policy', {}, safeHandler(getAgentPolicy));
+
+  server.tool('ensure_session', {
+    agent: { type: 'string' },
+    forceNew: { type: 'boolean', optional: true },
+  }, safeHandler(async ({ agent, forceNew }: any) => ensureSession(agent, Boolean(forceNew))));
+
+  server.tool('record_turn', {
+    agent: { type: 'string' },
+    sessionId: { type: 'string', optional: true },
+    promptSummary: { type: 'string' },
+    responseSummary: { type: 'string' },
+    memoryType: { type: 'string', optional: true },
+    tags: { type: 'array', optional: true },
+  }, safeHandler(async (args: any) => recordTurn(args)));
+
   server.tool('search_memory', {
     query: { type: 'string' },
     limit: { type: 'number', optional: true }
@@ -473,7 +597,7 @@ async function main() {
 
   server.tool('end_session', {
     sessionId: { type: 'string' }
-  }, safeHandler(async ({ sessionId }: any) => endSession(sessionId)));
+  }, safeHandler(async ({ sessionId }: any) => endSessionWithCleanup(sessionId)));
 
   server.tool('save_memory', {
     sessionId: { type: 'string' },

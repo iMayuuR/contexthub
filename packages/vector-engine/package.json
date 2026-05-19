@@ -1,7 +1,19 @@
 {
   "name": "@contexthub/vector-engine",
   "version": "1.0.0",
-  "description": "Vector engine for ContextHub",
+  "description": "Embeddings and semantic search for ContextHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/vector-engine"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,10 +21,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/shared-types": "file:../shared-types"
+    "@contexthub/shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
