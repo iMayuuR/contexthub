@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextHub — MCP Server for AI Coding Agents</title>
+  <meta name="description" content="Local-first MCP server: encrypted persistent memory, semantic search, and repo intelligence for Claude Code, Cursor, and any MCP client.">
+  <link rel="icon" type="image/png" href="assets/favicon.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="assets/branding/icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header class="cli-header">
+    <div class="header-container">
+      <a href="#hero" class="logo-area" aria-label="ContextHub home">
+        <img src="assets/logo.png" alt="ContextHub MCP Server" class="brand-logo" width="240" height="30">
+      </a>
+      <nav class="desktop-nav" aria-label="Primary">
+        <a href="#install" class="nav-link">[01] Install</a>
+        <a href="#features" class="nav-link">[02] Features</a>
+        <a href="#mcp" class="nav-link">[03] MCP</a>
+        <a href="#commands" class="nav-link">[04] Commands</a>
+        <a href="#security" class="nav-link">[05] Security</a>
+        <a href="#agents" class="nav-link">[06] Agents</a>
+        <a href="https://github.com/iMayuuR/contexthub" target="_blank" rel="noopener" class="nav-link highlight">[GH] Source</a>
+      </nav>
+      <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="mobile-nav" aria-label="Mobile">
+    <a href="#install" class="mobile-link">&gt; Install</a>
+    <a href="#features" class="mobile-link">&gt; Features</a>
+    <a href="#mcp" class="mobile-link">&gt; MCP Server</a>
+    <a href="#commands" class="mobile-link">&gt; Commands</a>
+    <a href="#security" class="mobile-link">&gt; Security</a>
+    <a href="#agents" class="mobile-link">&gt; Agent Setup</a>
+    <a href="https://github.com/iMayuuR/contexthub" target="_blank" rel="noopener" class="mobile-link highlight">&gt; GitHub</a>
+  </nav>
+
+  <main class="cli-main">
+
+    <!-- HERO -->
+    <section class="cli-section hero-section" id="hero">
+      <div class="hero-badges">
+        <span class="badge">v1.0.0</span>
+        <span class="badge">MIT</span>
+        <span class="badge">AES-256-GCM</span>
+        <span class="badge">MCP Server</span>
+        <span class="badge">stdio</span>
+      </div>
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot orange"></span>
+          <span class="terminal-title">mcp@contexthub: ~/server</span>
+        </div>
+        <div class="terminal-body">
+          <p class="prompt"><span class="user">mcp@contexthub</span><span class="dir">:~/server$</span> <span id="typewriter"></span></p>
+          <div class="terminal-output" id="hero-output">
+            <p class="success">ContextHub MCP Server v1.0.0 — online.</p>
+            <p>stdio transport · encrypted memory · repo intelligence · semantic search.</p>
+            <p>Agents connect via MCP — Claude Code, Cursor, and any compatible client.</p>
+            <p class="warning">Security hardened — auto-redaction engaged.</p>
+            <p>&gt; Listening for tool calls…</p>
+          </div>
+        </div>
+      </div>
+      <p class="hero-tagline">An MCP server with a terminal-styled docs site — persistent encrypted memory for your agents.</p>
+    </section>
+
+    <!-- WHAT -->
+    <section class="cli-section" id="about">
+      <h2 class="section-title">~/about<span class="cursor-blink">_</span></h2>
+      <p class="section-lead">ContextHub is a <strong>local-first MCP server</strong> — not a CLI app. It exposes memory, search, and repo-intelligence tools over the Model Context Protocol (stdio). Your agent calls tools; the server stores everything <strong>encrypted on your machine</strong>. A small command-line helper exists only to install, start, and stop the server.</p>
+      <div class="flow-list">
+        <p><span class="flow-num">1.</span> <strong>Capture</strong> — Interactions saved via MCP tools (no shell hooks)</p>
+        <p><span class="flow-num">2.</span> <strong>Sanitize</strong> — Input validated, secrets auto-redacted</p>
+        <p><span class="flow-num">3.</span> <strong>Encrypt</strong> — AES-256-GCM before writing to disk</p>
+        <p><span class="flow-num">4.</span> <strong>Analyze</strong> — Repo structure and architecture graph</p>
+        <p><span class="flow-num">5.</span> <strong>Embed</strong> — Vector embeddings for semantic search</p>
+        <p><span class="flow-num">6.</span> <strong>Inject</strong> — Relevant context retrieved for each query</p>
+      </div>
+    </section>
+
+    <!-- INSTALL -->
+    <section class="cli-section" id="install">
+      <h2 class="section-title">~/install<span class="cursor-blink">_</span></h2>
+      <p class="section-lead">Spin up the MCP server in your repo. Setup uses the <code>@contexthub/cli</code> launcher — that package starts the server; agents talk to it over MCP, not the shell.</p>
+
+      <h3 class="subsection-title">&gt; Recommended (any project)</h3>
+      <div class="cli-block copy-block" data-copy="npx @contexthub/cli setup">
+        <p class="comment"># Encrypted storage + background MCP server</p>
+        <p class="code">npx @contexthub/cli setup</p>
+        <button type="button" class="copy-btn" aria-label="Copy command">copy</button>
+      </div>
+
+      <h3 class="subsection-title">&gt; From source</h3>
+      <div class="cli-block">
+        <p class="comment"># Clone, build, and run setup</p>
+        <p class="code">git clone https://github.com/iMayuuR/contexthub.git</p>
+        <p class="code">cd contexthub</p>
+        <p class="code">npm install && npm run build</p>
+        <p class="code">node packages/cli/dist/index.js setup</p>
+      </div>
+
+      <h3 class="subsection-title">&gt; After setup</h3>
+      <ul class="check-list">
+        <li>Creates encrypted storage in <code>.contexthub/</code></li>
+        <li>Generates encryption key (<code>.keyfile</code>, mode 0600) and auth token</li>
+        <li>Starts MCP server in background with PID tracking</li>
+        <li>Does not modify <code>.bashrc</code> or <code>.zshrc</code></li>
+      </ul>
+
+      <h3 class="subsection-title">&gt; Point your agent at the server</h3>
+      <div class="cli-block copy-block" data-copy="npx @contexthub/cli start">
+        <p class="comment"># MCP stdio entrypoint (Cursor / Claude Code config)</p>
+        <p class="code">npx @contexthub/cli start</p>
+        <button type="button" class="copy-btn" aria-label="Copy command">copy</button>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="cli-section" id="features">
+      <h2 class="section-title">~/features<span class="cursor-blink">_</span></h2>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; Persistent Memory</h3>
+          <p class="feature-text">Saves conversations, decisions, and learnings across sessions.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; Semantic Search</h3>
+          <p class="feature-text">Natural language queries across all encrypted memories.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; Code Intelligence</h3>
+          <p class="feature-text">Repo structure, dependencies, and architecture analysis.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; MCP Server</h3>
+          <p class="feature-text">Native stdio MCP server — tools for memory, search, repo analysis, and skills.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; AES-256-GCM</h3>
+          <p class="feature-text">All data encrypted at rest with per-repo unique salt.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; Auto-Redaction</h3>
+          <p class="feature-text">API keys, tokens, and passwords detected before storage.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; Local-First</h3>
+          <p class="feature-text">Zero telemetry. Data never leaves your repository.</p>
+        </article>
+        <article class="feature-card">
+          <h3 class="feature-title">&gt; Learns Over Time</h3>
+          <p class="feature-text">Improves relevance through usage patterns.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- OPERATOR COMMANDS -->
+    <section class="cli-section" id="commands">
+      <h2 class="section-title">~/commands<span class="cursor-blink">_</span></h2>
+      <p class="section-lead">Optional terminal helper to install and manage the server. <strong>Agents use MCP tools</strong> — not these shell commands — for memory and search during coding sessions.</p>
+
+      <div class="table-wrap">
+        <table class="cli-table">
+          <thead>
+            <tr><th>Command</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>contexthub init</code></td><td>Initialize ContextHub in current repo</td></tr>
+            <tr><td><code>contexthub setup</code></td><td>Full setup with MCP + encrypted storage</td></tr>
+            <tr><td><code>contexthub memory --list</code></td><td>List all memories</td></tr>
+            <tr><td><code>contexthub memory --add "note"</code></td><td>Add a memory manually</td></tr>
+            <tr><td><code>contexthub memory --search "query"</code></td><td>Search memories</td></tr>
+            <tr><td><code>contexthub memory --list --type bugfix</code></td><td>Filter by memory type</td></tr>
+            <tr><td><code>contexthub timeline --limit 20</code></td><td>View session timeline</td></tr>
+            <tr><td><code>contexthub search --query "..." --limit 5</code></td><td>Semantic (vector) search</td></tr>
+            <tr><td><code>contexthub start --port 3000</code></td><td>Start MCP server manually</td></tr>
+            <tr><td><code>contexthub stop</code></td><td>Stop MCP server cleanly</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">&gt; Example session</h3>
+      <div class="cli-block">
+        <p class="code">contexthub memory --add "Handle race condition in auth module"</p>
+        <p class="code">contexthub memory --search "authentication bug"</p>
+        <p class="code">contexthub search --query "how to implement caching" --limit 5</p>
+      </div>
+    </section>
+
+    <!-- MEMORY TYPES -->
+    <section class="cli-section" id="memory-types">
+      <h2 class="section-title">~/memory-types<span class="cursor-blink">_</span></h2>
+      <div class="table-wrap">
+        <table class="cli-table">
+          <thead>
+            <tr><th>Type</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>prompt</code></td><td>User prompt / query</td></tr>
+            <tr><td><code>response</code></td><td>AI response / solution</td></tr>
+            <tr><td><code>summary</code></td><td>Session summary</td></tr>
+            <tr><td><code>decision</code></td><td>Architectural decision</td></tr>
+            <tr><td><code>architecture</code></td><td>Design pattern / structure</td></tr>
+            <tr><td><code>bugfix</code></td><td>Bug description and fix</td></tr>
+            <tr><td><code>manual</code></td><td>User-added note</td></tr>
+            <tr><td><code>commit</code></td><td>Git commit record</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section class="cli-section" id="architecture">
+      <h2 class="section-title">~/architecture<span class="cursor-blink">_</span></h2>
+      <pre class="arch-tree" aria-label="Package structure"><code>contexthub/
+├── packages/
+│   ├── core/              # Memory, encryption, SecurityManager
+│   ├── mcp-server/        # ★ MCP server (stdio tools, safeHandler)
+│   ├── cli/               # launcher: setup, start, stop (not the product)
+│   ├── vector-engine/     # Embeddings & semantic search
+│   ├── repo-parser/       # Code analysis (sandboxed)
+│   ├── git-integration/   # Git history & commits
+│   ├── context-injector/  # Smart context retrieval
+│   ├── memory-engine/     # Advanced memory algorithms
+│   ├── agent-connectors/  # Claude Code, Cursor adapters
+│   ├── skills/            # Built-in skills (locked)
+│   └── shared-types/      # TypeScript interfaces
+└── .contexthub/           # Per-repo encrypted storage
+    ├── memories.json
+    ├── sessions.json
+    ├── .keyfile / .auth-token
+    └── embeddings/</code></pre>
+    </section>
+
+    <!-- MCP -->
+    <section class="cli-section" id="mcp">
+      <h2 class="section-title">~/mcp-server<span class="cursor-blink">_</span></h2>
+      <p class="section-lead">The product surface is this MCP server: your agent invokes tools over stdio. All handlers use <code>safeHandler()</code> — errors never expose internal paths.</p>
+      <div class="table-wrap">
+        <table class="cli-table cli-table--compact">
+          <thead>
+            <tr><th>Tool</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>get_project_context</code></td><td>Project metadata + recent sessions</td></tr>
+            <tr><td><code>search_memory</code></td><td>Full-text search across memories</td></tr>
+            <tr><td><code>semantic_search</code></td><td>Vector similarity search</td></tr>
+            <tr><td><code>save_session</code> / <code>end_session</code></td><td>Session lifecycle</td></tr>
+            <tr><td><code>save_memory</code></td><td>Store entry (sanitized + encrypted)</td></tr>
+            <tr><td><code>summarize_repo</code></td><td>Repository summary</td></tr>
+            <tr><td><code>get_architecture_summary</code></td><td>Code structure analysis</td></tr>
+            <tr><td><code>get_related_files</code></td><td>Find connected code files</td></tr>
+            <tr><td><code>get_recent_changes</code></td><td>Git commit history</td></tr>
+            <tr><td><code>get_git_summary</code></td><td>Git repository status</td></tr>
+            <tr><td><code>update_knowledge_graph</code></td><td>Refresh code analysis</td></tr>
+            <tr><td><code>list_skills</code> / <code>load_skill</code></td><td>Built-in skills system</td></tr>
+            <tr><td><code>run_skill_command</code></td><td>Execute skill commands</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">&gt; Built-in skills (3 only)</h3>
+      <div class="table-wrap">
+        <table class="cli-table">
+          <thead>
+            <tr><th>Skill</th><th>Command</th><th>Use when</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>architect</code></td><td><code>analyze</code></td><td>architecture, design, structure</td></tr>
+            <tr><td><code>debug</code></td><td><code>find-similar</code></td><td>bug, error, fix, issue</td></tr>
+            <tr><td><code>review</code></td><td><code>review-changes</code></td><td>review, PR, pull request</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECURITY -->
+    <section class="cli-section" id="security">
+      <h2 class="section-title">~/security<span class="cursor-blink">_</span></h2>
+      <p class="section-lead">22/22 audit findings remediated · 24/24 security tests passed · 0 npm vulnerabilities.</p>
+
+      <div class="stats-row">
+        <div class="stat-card"><span class="stat-value">AES-256</span><span class="stat-label">Encryption at rest</span></div>
+        <div class="stat-card"><span class="stat-value">22/22</span><span class="stat-label">Findings fixed</span></div>
+        <div class="stat-card"><span class="stat-value">24/24</span><span class="stat-label">Tests passed</span></div>
+        <div class="stat-card"><span class="stat-value">0</span><span class="stat-label">npm vulns</span></div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="cli-table">
+          <thead>
+            <tr><th>Protection</th><th>Details</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Encryption</td><td>AES-256-GCM for memories, sessions, metadata</td></tr>
+            <tr><td>Auto-Redaction</td><td>sk-*, AKIA*, ghp_*, Bearer tokens, private keys</td></tr>
+            <tr><td>No Shell Hooks</td><td>No .bashrc/.zshrc modification or command capture</td></tr>
+            <tr><td>Path Safety</td><td>Traversal blocked; symlinks skipped (lstatSync)</td></tr>
+            <tr><td>Input Validation</td><td>50KB max content, 10K entry cap, type allowlist</td></tr>
+            <tr><td>Auth</td><td>Optional HMAC via <code>CONTEXTHUB_TOKEN</code></td></tr>
+            <tr><td>Atomic Writes</td><td>Tmp file + rename; mutex on concurrent access</td></tr>
+            <tr><td>Local-First</td><td>Zero telemetry, zero external calls</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">&gt; Optional hardening</h3>
+      <div class="cli-block">
+        <p class="comment"># Enable MCP authentication</p>
+        <p class="code">export CONTEXTHUB_TOKEN=your-secret-token</p>
+        <p class="comment"># Custom encryption key</p>
+        <p class="code">export CONTEXTHUB_KEY=your-strong-passphrase</p>
+        <p class="comment"># Verify permissions</p>
+        <p class="code">ls -la .contexthub/</p>
+      </div>
+
+      <div class="warn-box">
+        <p><strong>Do not:</strong> share <code>.contexthub/.keyfile</code>, commit <code>.contexthub/</code>, or run as root.</p>
+      </div>
+    </section>
+
+    <!-- AGENT SETUP -->
+    <section class="cli-section" id="agents">
+      <h2 class="section-title">~/agent-setup<span class="cursor-blink">_</span></h2>
+      <p class="section-lead">Connect Claude Code, Cursor, or any MCP client via stdio transport.</p>
+
+      <h3 class="subsection-title">&gt; 1. Initialize</h3>
+      <div class="cli-block copy-block" data-copy="npx -y @contexthub/cli setup">
+        <p class="code">npx -y @contexthub/cli setup</p>
+        <button type="button" class="copy-btn" aria-label="Copy">copy</button>
+      </div>
+
+      <h3 class="subsection-title">&gt; 2. Auth token</h3>
+      <div class="cli-block">
+        <p class="code">cat .contexthub/.auth-token</p>
+        <p class="code">export CONTEXTHUB_TOKEN="&lt;retrieved-token&gt;"</p>
+      </div>
+
+      <h3 class="subsection-title">&gt; 3. Cursor MCP config</h3>
+      <div class="cli-block">
+        <p class="comment"># Name: contexthub · Type: command</p>
+        <p class="code">npx @contexthub/cli start</p>
+        <p class="comment"># Env: CONTEXTHUB_TOKEN=&lt;your-auth-token&gt;</p>
+      </div>
+
+      <h3 class="subsection-title">&gt; 4. Claude Code (claudecode.config.json)</h3>
+      <pre class="arch-tree"><code>{
+  "mcpServers": {
+    "contexthub": {
+      "command": "npx",
+      "args": ["@contexthub/cli", "start"],
+      "env": { "CONTEXTHUB_TOKEN": "&lt;your-auth-token&gt;" }
+    }
+  }
+}</code></pre>
+
+      <h3 class="subsection-title">&gt; Agent security rules</h3>
+      <ul class="check-list">
+        <li>Never read or leak <code>.contexthub/.keyfile</code></li>
+        <li>Redact secrets before calling <code>save_memory</code></li>
+        <li>Do not query paths outside the repo root</li>
+        <li>Never parse <code>.env</code>, <code>.pem</code>, <code>.key</code> files</li>
+        <li>Do not modify shell profiles — use <code>contexthub stop</code> to shutdown</li>
+      </ul>
+    </section>
+
+    <!-- LIFECYCLE -->
+    <section class="cli-section" id="lifecycle">
+      <h2 class="section-title">~/stop-uninstall<span class="cursor-blink">_</span></h2>
+      <div class="cli-block">
+        <p class="comment"># Clean shutdown</p>
+        <p class="code">contexthub stop</p>
+        <p class="comment"># Remove all data (no shell cleanup needed)</p>
+        <p class="code">rm -rf .contexthub</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="cli-footer">
+    <p>root@contexthub:~$ exit</p>
+    <p class="copyright">MIT © 2026 ContextHub Contributors · Secure by Design, Private by Default</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
