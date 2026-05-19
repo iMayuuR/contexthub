@@ -569,3 +569,24 @@ code {
     padding: 16px;
   }
 }
+
+/* Premium Token Highlights */
+.badge.success-badge {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.15);
+  font-weight: 600;
+}
+
+.feature-card.highlighted-card {
+  border-color: var(--accent-cyan);
+  background: linear-gradient(135deg, #141414 0%, #111a24 100%);
+  box-shadow: 0 4px 20px rgba(0, 210, 255, 0.05);
+}
+
+.feature-card.highlighted-card:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 4px 25px rgba(0, 210, 255, 0.15);
+  transform: translateY(-4px);
+}
+
