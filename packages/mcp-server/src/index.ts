@@ -16,11 +16,27 @@
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 // @ts-ignore
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-import { ContextHubCore, SecurityManager } from '@contexthub/core';
+import { 
+  ContextHubCore, 
+  SecurityManager, 
+  runUnifiedQuery,
+  MAX_QUERY_LIMIT,
+  MAX_SEARCH_CANDIDATES,
+  DEFAULT_QUERY_LIMIT,
+  MAX_MEMORY_CONTENT_LENGTH,
+  MAX_COMMIT_HASH_LENGTH,
+  MAX_BRANCH_LENGTH,
+  MAX_RELATED_PATHS,
+  MAX_RELATED_SYMBOLS,
+  MAX_MEMORIES_TOTAL,
+  MAX_MEMORY_TAGS
+} from '@contexthub/core';
 import { VectorEngine } from '@contexthub/vector-engine';
 import { RepoParser } from '@contexthub/repo-parser';
 import { GitIntegration } from '@contexthub/git-integration';
 import { SkillsManager } from '@contexthub/skills';
+import { CodeGraphManager, writeGraphReport } from '@contexthub/knowledge-graph';
+import { DocsIngester } from '@contexthub/docs-ingest';
 import type { MemoryEntry, Session } from '@contexthub/shared-types';
 import { getAgentPolicyMarkdown, AGENT_POLICY_VERSION } from './agent-policy';
 import {
@@ -88,10 +104,12 @@ function safeHandler<T>(handler: (...args: any[]) => Promise<T>) {
 
 async function getProjectContext() {
   const ctx = getCore();
+  const repoPath = process.cwd();
+  
   const [metadata, sessions, memories] = await Promise.all([
     ctx.getProjectMetadata(),
     ctx.getSessions(5),
-    ctx.searchMemories({ limit: 100 })
+    ctx.searchMemories({ limit: 1000 })
   ]);
 
   // Calculate stats
@@ -100,7 +118,24 @@ async function getProjectContext() {
     typeCounts[mem.type] = (typeCounts[mem.type] || 0) + 1;
   }
 
-  const active = readActiveSession(process.cwd());
+  const active = readActiveSession(repoPath);
+
+  // Get last summary memory
+  const lastSummary = memories.find(m => m.type === 'summary');
+
+  // Get code graph stats
+  let codeGraphStats = null;
+  try {
+    const graphManager = new CodeGraphManager(repoPath);
+    const graph = await graphManager.loadGraph().catch(() => null);
+    if (graph) {
+      codeGraphStats = {
+        nodeCount: graph.nodes.length,
+        edgeCount: graph.edges.length,
+        updatedAt: graph.updatedAt
+      };
+    }
+  } catch (e) {}
 
   return {
     project: metadata,
@@ -109,21 +144,23 @@ async function getProjectContext() {
     totalMemories: memories.length,
     timestamp: Date.now(),
     activeSession: active,
+    lastSummary: lastSummary ? { content: lastSummary.content, timestamp: lastSummary.timestamp } : null,
+    codeGraphStats,
     agentPolicyVersion: AGENT_POLICY_VERSION,
     autoMemoryInstructions:
       'Call ensure_session at start, record_turn after meaningful turns, get_project_context before work. See get_agent_policy.',
   };
 }
 
-async function searchMemory(query: string, limit: number = 10) {
+async function searchMemory(query: string, limit: number = DEFAULT_QUERY_LIMIT) {
   const ctx = getCore();
   const sec = getSecurity();
 
   // Validate inputs
   const sanitizedQuery = sec.sanitizeQuery(query);
-  const safeLimit = sec.validateLimit(limit, 1, 100);
+  const safeLimit = sec.validateLimit(limit, 1, MAX_QUERY_LIMIT);
 
-  const allMemories = await ctx.searchMemories({ limit: 1000 });
+  const allMemories = await ctx.searchMemories({ limit: MAX_SEARCH_CANDIDATES });
 
   // Filter by content match
   const queryLower = sanitizedQuery.toLowerCase();
@@ -165,13 +202,17 @@ async function saveMemory(sessionId: string, memoryData: {
   type?: string;
   content: string;
   tags?: string[];
+  relatedPaths?: string[];
+  relatedSymbols?: string[];
+  commitHash?: string;
+  branch?: string;
 }) {
   const ctx = getCore();
   const sec = getSecurity();
 
   // Validate inputs
   const sanitizedSessionId = sec.sanitizeInput(sessionId, 50);
-  let sanitizedContent = sec.sanitizeInput(memoryData.content, 51200); // 50KB max
+  let sanitizedContent = sec.sanitizeInput(memoryData.content, MAX_MEMORY_CONTENT_LENGTH); // max 50KB
   if (sec.isSensitive(sanitizedContent)) {
     sanitizedContent = sec.redactSensitive(sanitizedContent);
   }
@@ -180,14 +221,32 @@ async function saveMemory(sessionId: string, memoryData: {
   const sanitizedTags = (memoryData.tags || [])
     .map(tag => sec.sanitizeInput(tag, 100))
     .filter(tag => tag.length > 0)
-    .slice(0, 20);
+    .slice(0, MAX_MEMORY_TAGS);
+
+  let commitHash = memoryData.commitHash;
+  let branch = memoryData.branch;
+  if (gitIntegration && (!commitHash || !branch)) {
+    try {
+      const summary = await gitIntegration.getGitSummary();
+      if (summary.recentCommits && summary.recentCommits.length > 0) {
+        if (!commitHash) commitHash = summary.recentCommits[0].hash.substring(0, MAX_COMMIT_HASH_LENGTH);
+        if (!branch) branch = sec.sanitizeInput(summary.currentBranch, MAX_BRANCH_LENGTH);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
 
   const id = await ctx.saveMemory({
     sessionId: sanitizedSessionId,
     type: validType as any,
     content: sanitizedContent,
     timestamp: Date.now(),
-    tags: sanitizedTags
+    tags: sanitizedTags,
+    relatedPaths: memoryData.relatedPaths?.slice(0, MAX_RELATED_PATHS),
+    relatedSymbols: memoryData.relatedSymbols?.slice(0, MAX_RELATED_SYMBOLS),
+    commitHash,
+    branch
   });
   return { id, sessionId: sanitizedSessionId };
 }
@@ -228,6 +287,10 @@ async function recordTurn(params: {
   responseSummary: string;
   memoryType?: string;
   tags?: string[];
+  relatedPaths?: string[];
+  relatedSymbols?: string[];
+  commitHash?: string;
+  branch?: string;
 }) {
   const ctx = getCore();
   const sec = getSecurity();
@@ -262,6 +325,10 @@ async function recordTurn(params: {
     type: 'prompt',
     content: prompt,
     tags: ['prompt', sanitizedAgent, 'auto', ...extraTags],
+    relatedPaths: params.relatedPaths,
+    relatedSymbols: params.relatedSymbols,
+    commitHash: params.commitHash,
+    branch: params.branch,
   });
 
   const responseType = sec.validateMemoryType(params.memoryType || 'response');
@@ -269,6 +336,10 @@ async function recordTurn(params: {
     type: responseType,
     content: response,
     tags: ['response', sanitizedAgent, 'auto', ...extraTags],
+    relatedPaths: params.relatedPaths,
+    relatedSymbols: params.relatedSymbols,
+    commitHash: params.commitHash,
+    branch: params.branch,
   });
 
   return {
@@ -280,6 +351,32 @@ async function recordTurn(params: {
 }
 
 async function endSessionWithCleanup(sessionId: string) {
+  const ctx = getCore();
+  
+  // Load session memories for summary
+  const memories = await ctx.searchMemories({ sessionId, limit: 1000 });
+  if (memories.length > 0) {
+    const typeCounts: Record<string, number> = {};
+    const paths = new Set<string>();
+    for (const m of memories) {
+      if (m.type === 'summary') continue;
+      typeCounts[m.type] = (typeCounts[m.type] || 0) + 1;
+      (m.relatedPaths || []).forEach(p => paths.add(p));
+    }
+    
+    const typesStr = Object.entries(typeCounts).map(([k,v]) => `${k}(${v})`).join(', ');
+    let summaryContent = `Session summary. Types: ${typesStr || 'none'}.`;
+    if (paths.size > 0) {
+      summaryContent += ` Paths touched: ${Array.from(paths).join(', ')}`;
+    }
+
+    await saveMemory(sessionId, {
+      type: 'summary',
+      content: summaryContent,
+      tags: ['session-summary']
+    });
+  }
+
   const result = await endSession(sessionId);
   clearActiveSession(process.cwd());
   return result;
@@ -436,9 +533,35 @@ async function updateKnowledgeGraph() {
 
   const parsed = await repoParser.parseDirectory(process.cwd());
 
+  const repoPath = process.cwd();
+  const graphManager = new CodeGraphManager(repoPath);
+  const graph = await graphManager.buildCodeGraph();
+
+  // Generate GRAPH_REPORT.md alongside the graph update
+  try {
+    const ctx = getCore();
+    const memories = await ctx.searchMemories({ limit: 1 });
+    let gitBranch: string | undefined;
+    try {
+      if (gitIntegration) {
+        const summary = await gitIntegration.getGitSummary();
+        gitBranch = summary.currentBranch;
+      }
+    } catch {}
+    await writeGraphReport({
+      repoPath,
+      memoryCount: memories.length,
+      gitBranch
+    });
+  } catch {
+    // Report generation is non-critical; don't fail the graph update
+  }
+
   return {
     status: 'completed',
     filesAnalyzed: parsed.length,
+    nodeCount: graph.nodes.length,
+    edgeCount: graph.edges.length,
     files: parsed.map(p => ({
       path: p.path,
       language: p.language,
@@ -447,6 +570,125 @@ async function updateKnowledgeGraph() {
       exportCount: p.exports.length
     }))
   };
+}
+
+async function getCodeGraphStats() {
+  const graphManager = new CodeGraphManager(process.cwd());
+  const graph = await graphManager.loadGraph().catch(() => null);
+  if (!graph) return { status: 'not_initialized' };
+  return {
+    nodeCount: graph.nodes.length,
+    edgeCount: graph.edges.length,
+    updatedAt: graph.updatedAt,
+    version: graph.version
+  };
+}
+
+async function getRelatedSymbols(fileOrSymbol: string, limit?: number) {
+  const sec = getSecurity();
+  const sanitized = sec.sanitizeInput(fileOrSymbol, 500);
+  const safeLimit = sec.validateLimit(limit || 10, 1, 100);
+  const graphManager = new CodeGraphManager(process.cwd());
+  const related = await graphManager.getRelatedSymbols(sanitized, safeLimit);
+  return { related };
+}
+
+async function getBlastRadius(fileOrSymbol: string, depth?: number) {
+  const sec = getSecurity();
+  const sanitized = sec.sanitizeInput(fileOrSymbol, 500);
+  const safeDepth = Math.min(Math.max(depth || 2, 1), 5);
+  const graphManager = new CodeGraphManager(process.cwd());
+  const { nodes, edges } = await graphManager.getBlastRadius(sanitized, safeDepth);
+  return { nodes, edges };
+}
+
+async function traceCodePath(fromId: string, toId: string, maxHops?: number) {
+  const sec = getSecurity();
+  const sanitizedFrom = sec.sanitizeInput(fromId, 500);
+  const sanitizedTo = sec.sanitizeInput(toId, 500);
+  const safeHops = Math.min(Math.max(maxHops || 5, 1), 10);
+  const graphManager = new CodeGraphManager(process.cwd());
+  const pathHops = await graphManager.tracePath(sanitizedFrom, sanitizedTo, safeHops);
+  return { path: pathHops };
+}
+
+async function getGodNodes(limit?: number) {
+  const sec = getSecurity();
+  const safeLimit = sec.validateLimit(limit || 10, 1, 100);
+  const graphManager = new CodeGraphManager(process.cwd());
+  const godNodes = await graphManager.getGodNodes(safeLimit);
+  return { godNodes };
+}
+
+async function getGraphCommunities() {
+  const graphManager = new CodeGraphManager(process.cwd());
+  const communities = await graphManager.detectCommunities();
+  return {
+    communities,
+    totalCommunities: communities.length,
+    totalFiles: communities.reduce((sum, c) => sum + c.size, 0)
+  };
+}
+
+async function getContextBundleMcp(query?: string, filePath?: string) {
+  const { buildContextBundle } = await import('./context-bundle');
+  const repoPath = process.cwd();
+  const ctx = getCore();
+  const graphManager = new CodeGraphManager(repoPath);
+
+  const bundle = await buildContextBundle(
+    { query, path: filePath, repoPath },
+    ctx,
+    vectorEngine,
+    graphManager,
+    gitIntegration
+  );
+  return bundle;
+}
+
+async function explainSymbolMcp(symbolId: string) {
+  const { explainSymbol } = await import('./context-bundle');
+  const repoPath = process.cwd();
+  const sec = getSecurity();
+  const sanitized = sec.sanitizeInput(symbolId, 500);
+  const ctx = getCore();
+  const graphManager = new CodeGraphManager(repoPath);
+  return explainSymbol(sanitized, repoPath, ctx, graphManager);
+}
+
+async function searchMemoryByCode(fileOrSymbol: string, limit?: number) {
+  const sec = getSecurity();
+  const sanitized = sec.sanitizeInput(fileOrSymbol, 500);
+  const safeLimit = sec.validateLimit(limit || 10, 1, 100);
+  const ctx = getCore();
+  
+  const memories = await ctx.searchMemories({ limit: 1000 });
+  const results = memories.filter(mem => {
+    const hasPathMatch = mem.relatedPaths?.some(p => p.toLowerCase().includes(sanitized.toLowerCase()));
+    const hasSymMatch = mem.relatedSymbols?.some(s => s.toLowerCase().includes(sanitized.toLowerCase()));
+    return hasPathMatch || hasSymMatch;
+  }).slice(0, safeLimit);
+
+  return { results };
+}
+
+async function contexthubQueryMcp(query: string, limit?: number) {
+  const sec = getSecurity();
+  const ctx = getCore();
+  const sanitizedQuery = sec.sanitizeQuery(query);
+  const safeLimit = sec.validateLimit(limit || 10, 1, 100);
+
+  const graphManager = new CodeGraphManager(process.cwd());
+  const result = await runUnifiedQuery(
+    sanitizedQuery,
+    safeLimit,
+    ctx,
+    vectorEngine,
+    graphManager,
+    gitIntegration
+  );
+
+  return result;
 }
 
 async function listSkills() {
@@ -507,6 +749,85 @@ async function getGitSummary() {
   } catch (e) {
     return { error: 'Not a git repository' };
   }
+}
+
+async function getMemoriesForCommit(hash: string) {
+  const sec = getSecurity();
+  const ctx = getCore();
+  
+  const safeHash = sec.sanitizeInput(hash, 40).toLowerCase();
+  const memories = await ctx.searchMemories({ limit: 1000 });
+  
+  const results = memories.filter(m => m.commitHash && m.commitHash.toLowerCase().startsWith(safeHash));
+  
+  return { results };
+}
+
+async function ingestDocs(paths?: string[]) {
+  if (!vectorEngine) throw new Error('Vector engine not initialized');
+  const repoPath = process.cwd();
+  const graphManager = new CodeGraphManager(repoPath);
+  const ingester = new DocsIngester(repoPath, vectorEngine, graphManager);
+  
+  const filesIngested = await ingester.ingestMarkdown(paths || ['**/*.md']);
+  return { status: 'completed', filesIngested };
+}
+
+async function ingestPdf(filePath: string) {
+  const { PdfParser } = await import('@contexthub/plugin-pdf');
+  const sec = getSecurity();
+  const safePath = sec.validatePath(filePath);
+  
+  const parser = new PdfParser();
+  const result = await parser.parsePdf(safePath);
+  
+  const ctx = getCore();
+  const session = (await ctx.getSessions(1))[0];
+  
+  const path = await import('path');
+  const fileName = path.basename(safePath);
+
+  // Split into chunks if needed, but for now just save it directly. 
+  // It relies on MAX_MEMORY_CONTENT_LENGTH truncation inside saveMemory if it's too large,
+  // but let's save the metadata and first chunk of text to memory.
+  let contentToSave = result.text;
+  if (contentToSave.length > sec.maxInputLength) {
+    contentToSave = contentToSave.substring(0, sec.maxInputLength - 100) + '... [TRUNCATED]';
+  }
+
+  const memoryData = {
+    sessionId: session ? session.id : 'default-session',
+    type: 'manual',
+    content: `PDF Extraction: ${fileName}\nPages: ${result.pages}\n\n${contentToSave}`,
+    timestamp: Date.now(),
+    tags: ['pdf', 'ingest']
+  };
+
+  if (session) {
+    await saveMemory(session.id, memoryData as any);
+  } else {
+    // Just save raw memory
+    await ctx.saveMemory(memoryData as any);
+  }
+  
+  return { 
+    status: 'success', 
+    pages: result.pages, 
+    bytesRead: result.text.length,
+    message: 'PDF ingested successfully and saved to memory.'
+  };
+}
+
+
+async function searchDocs(query: string, limit?: number) {
+  if (!vectorEngine) throw new Error('Vector engine not initialized');
+  const repoPath = process.cwd();
+  const graphManager = new CodeGraphManager(repoPath);
+  const ingester = new DocsIngester(repoPath, vectorEngine, graphManager);
+  
+  const safeLimit = getSecurity().validateLimit(limit || 10, 1, 100);
+  const results = await ingester.searchDocs(query, safeLimit);
+  return { results };
 }
 
 async function runSkillCommand(skillName: string, commandName: string, args: Record<string, string>) {
@@ -583,6 +904,10 @@ async function main() {
     responseSummary: { type: 'string' },
     memoryType: { type: 'string', optional: true },
     tags: { type: 'array', optional: true },
+    relatedPaths: { type: 'array', optional: true },
+    relatedSymbols: { type: 'array', optional: true },
+    commitHash: { type: 'string', optional: true },
+    branch: { type: 'string', optional: true },
   }, safeHandler(async (args: any) => recordTurn(args)));
 
   server.tool('search_memory', {
@@ -639,14 +964,71 @@ async function main() {
 
   server.tool('get_git_summary', {}, safeHandler(getGitSummary));
 
+  server.tool('get_memories_for_commit', {
+    hash: { type: 'string' }
+  }, safeHandler(async ({ hash }: any) => getMemoriesForCommit(hash)));
+
+  server.tool('ingest_docs', {
+    paths: { type: 'object', optional: true }
+  }, safeHandler(async ({ paths }: any) => ingestDocs(paths)));
+
+  server.tool('search_docs', {
+    query: { type: 'string' },
+    limit: { type: 'number', optional: true }
+  }, safeHandler(async ({ query, limit }: any) => searchDocs(query, limit)));
+
+  server.tool('get_code_graph_stats', {}, safeHandler(getCodeGraphStats));
+
+  server.tool('get_related_symbols', {
+    fileOrSymbol: { type: 'string' },
+    limit: { type: 'number', optional: true }
+  }, safeHandler(async ({ fileOrSymbol, limit }: any) => getRelatedSymbols(fileOrSymbol, limit)));
+
+  server.tool('get_blast_radius', {
+    fileOrSymbol: { type: 'string' },
+    depth: { type: 'number', optional: true }
+  }, safeHandler(async ({ fileOrSymbol, depth }: any) => getBlastRadius(fileOrSymbol, depth)));
+
+  server.tool('trace_code_path', {
+    fromId: { type: 'string' },
+    toId: { type: 'string' },
+    maxHops: { type: 'number', optional: true }
+  }, safeHandler(async ({ fromId, toId, maxHops }: any) => traceCodePath(fromId, toId, maxHops)));
+
+  server.tool('search_memory_by_code', {
+    fileOrSymbol: { type: 'string' },
+    limit: { type: 'number', optional: true }
+  }, safeHandler(async ({ fileOrSymbol, limit }: any) => searchMemoryByCode(fileOrSymbol, limit)));
+
+  server.tool('get_god_nodes', {
+    limit: { type: 'number', optional: true }
+  }, safeHandler(async ({ limit }: any) => getGodNodes(limit)));
+
+  server.tool('get_graph_communities', {}, safeHandler(getGraphCommunities));
+
+  server.tool('contexthub_query', {
+    query: { type: 'string' },
+    limit: { type: 'number', optional: true }
+  }, safeHandler(async ({ query, limit }: any) => contexthubQueryMcp(query, limit)));
+
+  if (process.env.CONTEXTHUB_ENABLE_PDF === '1') {
+    server.tool('ingest_pdf', {
+      filePath: { type: 'string' }
+    }, safeHandler(async ({ filePath }: any) => ingestPdf(filePath)));
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('ContextHub MCP server started (hardened mode)');
 }
 
-main().catch(error => {
-  // Sanitize error output — don't expose internal paths
-  const safeMsg = String(error?.message || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
-  console.error('Failed to start MCP server:', safeMsg);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(error => {
+    // Sanitize error output — don't expose internal paths
+    const safeMsg = String(error?.message || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
+    console.error('Failed to start MCP server:', safeMsg);
+    process.exit(1);
+  });
+}
+
+export { buildSkillMarkdown } from './agent-policy';

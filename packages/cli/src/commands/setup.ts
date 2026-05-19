@@ -15,6 +15,8 @@ import { existsSync, writeFileSync } from "fs";
 import { spawn } from "child_process";
 import { resolveMcpServerEntry } from "../resolve-mcp-server";
 import { installAgentIntegrations } from "../agent-integrations/install";
+import { installContexthubSkill } from "../agent-integrations/install";
+import chalk from "chalk";
 
 export async function setupCommand(options: any = {}): Promise<void> {
   try {
@@ -50,6 +52,13 @@ export async function setupCommand(options: any = {}): Promise<void> {
     if (installed.agentsMd) console.log("   • AGENTS.md section");
     if (installed.claudeMd) console.log("   • CLAUDE.md section");
     console.log("   • .contexthub/agent-policy.md");
+
+    // Step 2c: Install Claude Code Skill
+    console.log(chalk.blue("🧩 Installing ContextHub skill..."));
+    const skillPath = installContexthubSkill(currentDir);
+    if (skillPath) {
+      console.log(chalk.green(`   • Skill installed to ${skillPath}`));
+    }
 
     // Step 3: Start MCP server in background with PID tracking
     console.log("🔌 Starting MCP server in background...");

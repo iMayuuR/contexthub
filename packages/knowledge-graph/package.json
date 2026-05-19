@@ -1,0 +1,37 @@
+{
+  "name": "@contexthub/knowledge-graph",
+  "version": "1.0.0",
+  "description": "Code knowledge graph builder and query engine for ContextHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/knowledge-graph"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/__tests__/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@contexthub/shared-types": "^1.0.0",
+    "@contexthub/core": "^1.0.0",
+    "@contexthub/repo-parser": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "typescript": "^5.0.0"
+  }
+}

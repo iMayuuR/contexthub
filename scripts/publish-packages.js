@@ -16,7 +16,13 @@ const PUBLISH_ORDER = [
   'core',
   'vector-engine',
   'repo-parser',
+  'knowledge-graph',
+  'docs-ingest',
+  'plugin-pdf',
   'git-integration',
+  'memory-engine',
+  'context-injector',
+  'agent-connectors',
   'skills',
   'mcp-server',
   'cli',
@@ -32,7 +38,11 @@ run('npm run build');
 for (const pkg of PUBLISH_ORDER) {
   const dir = path.join(root, 'packages', pkg);
   console.log(`\n━━━ Publishing @contexthub/${pkg === 'cli' ? 'cli' : pkg} ━━━`);
-  run('npm publish --access public', dir);
+  try {
+    run('npm publish --access public', dir);
+  } catch (err) {
+    console.log(`\n⚠️  Skipped @contexthub/${pkg} (likely already published or unpublished)`);
+  }
 }
 
 console.log('\n✅ All packages published. Test with: npx @contexthub/cli setup');

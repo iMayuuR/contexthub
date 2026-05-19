@@ -2,10 +2,8 @@ import type { ParsedFile, Symbol, ImportExport } from '@contexthub/shared-types'
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
+import { MAX_FILES_PER_SCAN, MAX_INGEST_FILE_SIZE } from '@contexthub/core';
 
-// ── Security Constants ────────────────────────────────────────────────────
-const MAX_FILES_PER_SCAN = 1000;
-const MAX_FILE_SIZE = 1024 * 1024; // 1MB per file
 const SENSITIVE_FILE_PATTERNS = [
   '.env', '.env.local', '.env.production', '.env.staging',
   '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore',
@@ -254,6 +252,160 @@ export class RepoParser {
   }
 
   /**
+   * Parse a Go file for symbols and imports
+   */
+  private parseGo(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    let inImportBlock = false;
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Handle import block
+      if (trimmed.startsWith('import (')) {
+        inImportBlock = true;
+        return;
+      }
+      if (inImportBlock && trimmed.startsWith(')')) {
+        inImportBlock = false;
+        return;
+      }
+
+      if (inImportBlock) {
+        const match = trimmed.match(/"([^"]+)"/);
+        if (match) {
+          imports.push({ source: match[1], imported: ['*'], isDefault: false, lineNumber });
+        }
+        return;
+      }
+
+      // Single-line import
+      const importMatch = trimmed.match(/^import\s+"([^"]+)"/);
+      if (importMatch) {
+        imports.push({ source: importMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+
+      // Functions (with receiver)
+      const methodMatch = trimmed.match(/^func\s+\(([^)]+)\)\s+(\w+)/);
+      if (methodMatch) {
+        symbols.push({ type: 'method', name: `${methodMatch[1].trim()}.${methodMatch[2]}`, lineNumber, columnNumber: 0 });
+      } else {
+        // Plain function
+        const funcMatch = trimmed.match(/^func\s+(\w+)/);
+        if (funcMatch) {
+          symbols.push({ type: 'function', name: funcMatch[1], lineNumber, columnNumber: 0 });
+        }
+      }
+
+      // Structs and interfaces
+      const typeMatch = trimmed.match(/^type\s+(\w+)\s+(struct|interface)/);
+      if (typeMatch) {
+        symbols.push({
+          type: typeMatch[2] === 'interface' ? 'interface' : 'class',
+          name: typeMatch[1],
+          lineNumber,
+          columnNumber: 0
+        });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a Rust file for symbols and imports
+   */
+  private parseRust(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Functions
+      const funcMatch = trimmed.match(/^(?:pub\s+)?(?:async\s+)?fn\s+(\w+)/);
+      if (funcMatch) {
+        symbols.push({ type: 'function', name: funcMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Structs, Enums, Traits
+      const structMatch = trimmed.match(/^(?:pub\s+)?struct\s+(\w+)/);
+      if (structMatch) {
+        symbols.push({ type: 'class', name: structMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      const enumMatch = trimmed.match(/^(?:pub\s+)?enum\s+(\w+)/);
+      if (enumMatch) {
+        symbols.push({ type: 'class', name: enumMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      const traitMatch = trimmed.match(/^(?:pub\s+)?trait\s+(\w+)/);
+      if (traitMatch) {
+        symbols.push({ type: 'interface', name: traitMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Imports
+      const importMatch = trimmed.match(/^use\s+([^;]+);/);
+      if (importMatch) {
+        imports.push({ source: importMatch[1].trim(), imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a Java file for symbols and imports
+   */
+  private parseJava(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Classes and Interfaces
+      const classMatch = trimmed.match(/^(?:public\s+|private\s+)?class\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      const interfaceMatch = trimmed.match(/^(?:public\s+|private\s+)?interface\s+(\w+)/);
+      if (interfaceMatch) {
+        symbols.push({ type: 'interface', name: interfaceMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Methods
+      const methodMatch = trimmed.match(/^(?:public|protected|private|static|\s) +[\w<>[\]]+ +(\w+) *\([^)]*\) *(?:throws [^{]+)? *\{/);
+      if (methodMatch) {
+        if (!['if', 'for', 'while', 'switch', 'catch'].includes(methodMatch[1])) {
+          symbols.push({ type: 'method', name: methodMatch[1], lineNumber, columnNumber: 0 });
+        }
+      }
+
+      // Imports
+      const importMatch = trimmed.match(/^import\s+([^;]+);/);
+      if (importMatch) {
+        imports.push({ source: importMatch[1].trim(), imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+
+  /**
    * Parse a single file (with size limit and sensitive file check)
    */
   async parseFile(filePath: string): Promise<ParsedFile> {
@@ -287,7 +439,7 @@ export class RepoParser {
       }
 
       // Security: Check file size before reading
-      if (lstats.size > MAX_FILE_SIZE) {
+      if (lstats.size > MAX_INGEST_FILE_SIZE) {
         return {
           path: filePath,
           language: this.detectLanguage(filePath),
@@ -309,6 +461,21 @@ export class RepoParser {
         symbols = parsed.symbols;
         imports = parsed.imports;
         exports = parsed.exports;
+      } else if (ext === 'go') {
+        const parsed = this.parseGo(content);
+        symbols = parsed.symbols;
+        imports = parsed.imports;
+        exports = parsed.exports;
+      } else if (ext === 'rs') {
+        const parsed = this.parseRust(content);
+        symbols = parsed.symbols;
+        imports = parsed.imports;
+        exports = parsed.exports;
+      } else if (ext === 'java') {
+        const parsed = this.parseJava(content);
+        symbols = parsed.symbols;
+        imports = parsed.imports;
+        exports = parsed.exports;
       }
     } catch (e) {
       // Sanitized error — don't expose full path
@@ -327,7 +494,7 @@ export class RepoParser {
   /**
    * Parse all code files in a directory (with security restrictions)
    */
-  async parseDirectory(dirPath: string, patterns: string[] = ['**/*.{ts,tsx,js,jsx,py}']): Promise<ParsedFile[]> {
+  async parseDirectory(dirPath: string, patterns: string[] = ['**/*.{ts,tsx,js,jsx,py,go,rs,java}']): Promise<ParsedFile[]> {
     const results: ParsedFile[] = [];
     const repoRoot = path.resolve(this.repoPath);
 

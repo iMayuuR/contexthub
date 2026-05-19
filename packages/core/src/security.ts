@@ -13,6 +13,16 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { 
+  MAX_MEMORY_CONTENT_LENGTH, 
+  MAX_MEMORIES_TOTAL, 
+  MAX_INGEST_FILE_SIZE,
+  MAX_RELATED_PATHS,
+  MAX_RELATED_SYMBOLS,
+  MAX_COMMIT_HASH_LENGTH,
+  MAX_BRANCH_LENGTH,
+  MAX_QUERY_LENGTH
+} from './limits';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -21,11 +31,6 @@ const IV_LENGTH = 12;        // NIST-recommended for GCM
 const AUTH_TAG_LENGTH = 16;
 const KEY_LENGTH = 32;       // 256 bits
 const SALT_PREFIX = 'contexthub-v1-';
-
-const MAX_INPUT_LENGTH = 51200;   // 50KB default
-const MAX_QUERY_LENGTH = 1000;
-const MAX_MEMORY_ENTRIES = 10000;
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 
 /**
  * Patterns that indicate sensitive data that should NOT be stored in memory.
@@ -201,7 +206,7 @@ export class SecurityManager {
   /**
    * Sanitize user input: trim, enforce max length, strip control characters.
    */
-  sanitizeInput(input: string, maxLen: number = MAX_INPUT_LENGTH): string {
+  sanitizeInput(input: string | undefined, maxLength: number = MAX_MEMORY_CONTENT_LENGTH): string {
     if (typeof input !== 'string') {
       throw new Error('Input must be a string');
     }
@@ -210,8 +215,8 @@ export class SecurityManager {
     let sanitized = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
     // Enforce max length
-    if (sanitized.length > maxLen) {
-      sanitized = sanitized.substring(0, maxLen);
+    if (sanitized.length > maxLength) {
+      sanitized = sanitized.substring(0, maxLength);
     }
 
     return sanitized.trim();
@@ -227,7 +232,7 @@ export class SecurityManager {
   /**
    * Validate a numeric limit parameter.
    */
-  validateLimit(limit: number | undefined, min: number = 1, max: number = 100): number {
+  validateLimit(limit: number, min: number = 1, max: number = 1000): number {
     if (limit === undefined || limit === null) return max;
     const num = Math.floor(Number(limit));
     if (isNaN(num) || num < min) return min;
@@ -244,6 +249,32 @@ export class SecurityManager {
       throw new Error(`Invalid port: ${port}. Must be between 1024 and 65535.`);
     }
     return num;
+  }
+
+  /**
+   * Validate an array of related paths.
+   */
+  validateRelatedPaths(paths: unknown): string[] {
+    if (!Array.isArray(paths)) return [];
+    return paths.slice(0, 20).map(p => this.validatePath(String(p)));
+  }
+
+  /**
+   * Validate an array of related symbols.
+   */
+  validateRelatedSymbols(symbols: unknown): string[] {
+    if (!Array.isArray(symbols)) return [];
+    return symbols.slice(0, 20).map(s => this.sanitizeInput(String(s), 200)).filter(Boolean);
+  }
+
+  /**
+   * Validate a git commit hash.
+   */
+  validateCommitHash(hash: unknown): string | undefined {
+    if (!hash) return undefined;
+    const h = this.sanitizeInput(String(hash), 40);
+    if (!/^[a-f0-9]{7,40}$/i.test(h)) return undefined;
+    return h.toLowerCase();
   }
 
   /**
@@ -370,7 +401,7 @@ export class SecurityManager {
   /**
    * Check file size before reading. Throws if too large.
    */
-  checkFileSize(filePath: string, maxBytes: number = MAX_FILE_SIZE_BYTES): void {
+  checkFileSize(filePath: string, maxBytes: number = MAX_INGEST_FILE_SIZE): void {
     if (!fs.existsSync(filePath)) return;
     const stats = fs.statSync(filePath);
     if (stats.size > maxBytes) {
@@ -393,8 +424,8 @@ export class SecurityManager {
 
   // ── Constants Accessors ─────────────────────────────────────────────────
 
-  get maxMemoryEntries(): number { return MAX_MEMORY_ENTRIES; }
-  get maxInputLength(): number { return MAX_INPUT_LENGTH; }
+  get maxMemoryEntries(): number { return MAX_MEMORIES_TOTAL; }
+  get maxInputLength(): number { return MAX_MEMORY_CONTENT_LENGTH; }
   get maxQueryLength(): number { return MAX_QUERY_LENGTH; }
-  get maxFileSizeBytes(): number { return MAX_FILE_SIZE_BYTES; }
+  get maxFileSizeBytes(): number { return MAX_INGEST_FILE_SIZE; }
 }

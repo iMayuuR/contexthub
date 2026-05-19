@@ -43,3 +43,15 @@ Skip: trivial chit-chat, pure formatting, repeated info already saved.
 Policy version: ${AGENT_POLICY_VERSION}
 `;
 }
+
+export function buildSkillMarkdown(): string {
+  return `---
+# ContextHub Skill
+description: Integrates ContextHub local-first MCP server for memory and knowledge graph access.
+---
+
+<!-- contexthub:managed -->
+
+${getAgentPolicyMarkdown()}
+`;
+}

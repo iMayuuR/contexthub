@@ -23,6 +23,8 @@ npx @contexthub/cli setup
 | `memory --search "..."` | Search memories |
 | `timeline` | Session timeline |
 | `search --query "..."` | Semantic search |
+| `dashboard` | Start local web dashboard |
+| `ingest-docs` | Ingest Markdown docs into ContextHub |
 
 ## MCP client config (Cursor / Claude Code)
 

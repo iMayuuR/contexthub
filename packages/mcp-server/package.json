@@ -32,6 +32,9 @@
     "@contexthub/shared-types": "^1.0.0",
     "@contexthub/skills": "^1.0.0",
     "@contexthub/vector-engine": "^1.0.0",
+    "@contexthub/knowledge-graph": "^1.0.0",
+    "@contexthub/docs-ingest": "^1.0.0",
+    "@contexthub/plugin-pdf": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "glob": "^10.0.0",
     "simple-git": "^3.0.0"

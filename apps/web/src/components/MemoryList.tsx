@@ -3,37 +3,8 @@
 import { Box, VStack, HStack, Text, Badge, Card, CardBody, IconButton, Tooltip } from '@chakra-ui/react';
 import { Brain, Copy, Trash2, Tag } from 'lucide-react';
 
-// Sample data - in production, this would fetch from ContextHub
-const sampleMemories = [
-  {
-    id: '1',
-    type: 'bugfix',
-    content: 'Fixed race condition in user authentication by adding mutex lock around session creation',
-    timestamp: Date.now() - 3600000,
-    tags: ['auth', 'security', 'threading']
-  },
-  {
-    id: '2',
-    type: 'decision',
-    content: 'Decided to use PostgreSQL for primary storage instead of SQLite due to concurrent access requirements',
-    timestamp: Date.now() - 7200000,
-    tags: ['database', 'architecture']
-  },
-  {
-    id: '3',
-    type: 'architecture',
-    content: 'Implemented service layer pattern for API endpoints to separate business logic from controllers',
-    timestamp: Date.now() - 86400000,
-    tags: ['architecture', 'api']
-  },
-  {
-    id: '4',
-    type: 'manual',
-    content: 'Remember to run migration script after deploying v2.3.0 to update user preferences schema',
-    timestamp: Date.now() - 172800000,
-    tags: ['deployment', 'reminder']
-  },
-];
+import { useState, useEffect } from 'react';
+import { contexthubClient } from '@/lib/contexthub-client';
 
 const typeColors: Record<string, string> = {
   bugfix: 'red',
@@ -46,9 +17,26 @@ const typeColors: Record<string, string> = {
 };
 
 export default function MemoryList() {
+  const [memories, setMemories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    contexthubClient.getMemories()
+      .then(data => {
+        setMemories(data.memories || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load memories:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <Text>Loading memories...</Text>;
+
   return (
     <VStack spacing={4} align="stretch">
-      {sampleMemories.map((memory) => (
+      {memories.map((memory) => (
         <Card key={memory.id} bg="gray.700" variant="outline" size="sm">
           <CardBody>
             <HStack justify="space-between" mb={2}>
@@ -85,7 +73,7 @@ export default function MemoryList() {
                   </Text>
                 </HStack>
               </Tag>
-              {memory.tags.map((tag) => (
+              {memory.tags?.map((tag: string) => (
                 <Badge key={tag} size="sm" variant="outline" colorScheme="blue">
                   {tag}
                 </Badge>

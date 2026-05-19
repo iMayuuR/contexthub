@@ -7,6 +7,8 @@ import {
   chmodSync,
 } from 'fs';
 import { join } from 'path';
+import chalk from 'chalk';
+import { buildSkillMarkdown } from '@contexthub/mcp-server';
 import type { SecurityManager } from '@contexthub/core';
 import {
   AGENT_POLICY_MARKER,
@@ -158,4 +160,31 @@ export function installAgentIntegrations(
   result.claudeMd = true;
 
   return result;
+}
+
+export function installContexthubSkill(repoPath: string): string | null {
+  const claudeDir = join(repoPath, '.claude');
+  const skillsDir = join(claudeDir, 'skills');
+  const contexthubDir = join(skillsDir, 'contexthub');
+  const skillFile = join(contexthubDir, 'SKILL.md');
+
+  // Ensure directories exist
+  if (!existsSync(claudeDir)) mkdirSync(claudeDir);
+  if (!existsSync(skillsDir)) mkdirSync(skillsDir);
+  if (!existsSync(contexthubDir)) mkdirSync(contexthubDir);
+
+  // Check if file exists and lacks managed marker
+  if (existsSync(skillFile)) {
+    const content = readFileSync(skillFile, 'utf8');
+    if (!content.includes('<!-- contexthub:managed -->')) {
+      console.log(chalk.yellow(`  ℹ Skipped skill install: Custom SKILL.md found at .claude/skills/contexthub/SKILL.md`));
+      return null;
+    }
+  }
+
+  // Write managed skill file
+  const skillMarkdown = buildSkillMarkdown();
+  writeFileSync(skillFile, skillMarkdown, 'utf8');
+  
+  return skillFile;
 }

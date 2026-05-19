@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": ".cursor/hooks/contexthub-record-turn.mjs"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": ".cursor/hooks/contexthub-record-turn.mjs"
+      }
+    ]
+  }
+}

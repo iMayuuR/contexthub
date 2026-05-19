@@ -1,0 +1,19 @@
+{
+  "name": "@contexthub/plugin-pdf",
+  "version": "1.0.0",
+  "description": "Optional PDF ingest plugin for ContextHub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/core": "^1.0.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

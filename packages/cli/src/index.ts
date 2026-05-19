@@ -8,6 +8,12 @@ import { timelineCommand } from './commands/timeline';
 import { searchCommand } from './commands/search';
 import { setupCommand } from './commands/setup';
 import { stopCommand } from './commands/stop';
+import { watchCommand } from './commands/watch';
+import { queryCommand } from './commands/query';
+import { exportGraphCommand } from './commands/export-graph';
+import { dashboardCommand } from './commands/dashboard';
+import { ingestDocsCommand } from './commands/ingest-docs';
+import { reportCommand } from './commands/report';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -86,6 +92,45 @@ program
     await stopCommand();
   });
 
+// Watch files recursively
+program
+  .command('watch [path]')
+  .description('Start recursive, incremental file watcher')
+  .option('--debounce <ms>', 'Debounce duration in ms', '3000')
+  .option('--no-embeddings', 'Disable vector embeddings updates')
+  .option('--quiet', 'Disable console output logs')
+  .action(async (watchPath, options) => {
+    await watchCommand(watchPath || '.', options);
+  });
+
+// Export code graph to HTML
+program
+  .command('export-graph')
+  .description('Export code graph to standalone HTML')
+  .option('--output <path>', 'Output file path (default: graph.html)')
+  .action(async (options) => {
+    await exportGraphCommand(options);
+  });
+
+// Local Dashboard
+program
+  .command('dashboard')
+  .description('Start local ContextHub dashboard server')
+  .option('--port <number>', 'Port to listen on', '3847')
+  .action(async (options) => {
+    await dashboardCommand(options);
+  });
+
+// Unified Query command
+program
+  .command('query <queryText>')
+  .description('Unified semantic search + memories + code graph traversal + git history')
+  .option('--limit <number>', 'Limit search results count', '10')
+  .option('--json', 'Output results as raw JSON')
+  .action(async (queryText, options) => {
+    await queryCommand(queryText, options);
+  });
+
 // Global error handler — sanitize output
 process.on('uncaughtException', (err) => {
   const safeMsg = String(err?.message || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
@@ -98,5 +143,22 @@ process.on('unhandledRejection', (reason) => {
   console.error('Unhandled rejection:', safeMsg);
   process.exit(1);
 });
+
+// Ingest Docs
+program
+  .command('ingest-docs [patterns...]')
+  .description('Ingest markdown documentation into ContextHub vector engine')
+  .action(async (patterns: string[]) => {
+    await ingestDocsCommand({ patterns });
+  });
+
+// Generate GRAPH_REPORT.md
+program
+  .command('report')
+  .description('Generate GRAPH_REPORT.md from the code graph')
+  .option('--stdout', 'Print report to stdout instead of writing to file')
+  .action(async (options) => {
+    await reportCommand(options);
+  });
 
 program.parse();

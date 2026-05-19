@@ -55,6 +55,8 @@ Secrets are auto-redacted; storage is AES-256-GCM encrypted.
 | `contexthub search --query "..." --limit 5` | Semantic search |
 | `contexthub start --port 3000` | Start MCP server manually |
 | `contexthub stop` | Stop MCP server cleanly |
+| `contexthub dashboard` | Launch local web dashboard |
+| `contexthub ingest-docs` | Ingest Markdown documentation |
 
 ---
 

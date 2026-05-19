@@ -17,6 +17,24 @@ export interface MemoryEntry {
   timestamp: number;
   tags: string[];
   embedding?: number[]; // vector embedding
+  /**
+   * Up to 20 paths related to this memory.
+   * Path should be repository-relative and validated.
+   */
+  relatedPaths?: string[];
+  /**
+   * Up to 20 symbol names (functions, classes, etc.) related to this memory.
+   * Names will be sanitized and capped at 200 characters each.
+   */
+  relatedSymbols?: string[];
+  /**
+   * Git commit hash associated with this memory (7-40 hex chars).
+   */
+  commitHash?: string;
+  /**
+   * Git branch associated with this memory.
+   */
+  branch?: string;
 }
 
 export interface ProjectMetadata {
@@ -90,4 +108,25 @@ export interface SecurityConfig {
   maxFileSizeBytes: number;
   /** Whether auth token is required for MCP (default: false, auto-enabled if CONTEXTHUB_TOKEN is set) */
   authRequired: boolean;
+}
+
+export interface CodeGraphNode {
+  id: string; // path or path#symbolName
+  kind: 'file' | 'symbol';
+  path: string;
+  name?: string;
+  lang?: string;
+}
+
+export interface CodeGraphEdge {
+  from: string;
+  to: string;
+  kind: 'imports' | 'calls' | 'contains';
+}
+
+export interface CodeGraph {
+  version: string;
+  updatedAt: number;
+  nodes: CodeGraphNode[];
+  edges: CodeGraphEdge[];
 }

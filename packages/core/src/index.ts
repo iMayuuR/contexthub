@@ -3,6 +3,8 @@ import { SecurityManager } from './security';
 import type { Session, MemoryEntry, ProjectMetadata } from '@contexthub/shared-types';
 
 export { SecurityManager } from './security';
+export { runUnifiedQuery, UnifiedQueryResult } from './query-pipeline';
+export * from './limits';
 
 
 export class ContextHubCore {

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "contexthub": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@contexthub/cli",
+        "start"
+      ]
+    }
+  }
+}

@@ -202,6 +202,19 @@ export class MemoryStorage {
 
   // ── Memory Management ──────────────────────────────────────────────────
 
+  private calculateJaccard(str1: string, str2: string): number {
+    const words1 = str1.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+    const words2 = str2.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+    if (words1.length === 0 && words2.length === 0) return 1;
+    if (words1.length === 0 || words2.length === 0) return 0;
+    
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    return intersection.size / union.size;
+  }
+
   async saveMemory(memory: Omit<MemoryEntry, 'id'>): Promise<string> {
     const release = await this.mutex.acquire();
     try {
@@ -228,9 +241,25 @@ export class MemoryStorage {
         content,
         type: validType as any,
         tags: sanitizedTags,
+        relatedPaths: memory.relatedPaths ? this.security.validateRelatedPaths(memory.relatedPaths) : undefined,
+        relatedSymbols: memory.relatedSymbols ? this.security.validateRelatedSymbols(memory.relatedSymbols) : undefined,
+        commitHash: memory.commitHash ? this.security.validateCommitHash(memory.commitHash) : undefined,
+        branch: memory.branch ? this.security.sanitizeInput(String(memory.branch), 100) : undefined,
       };
 
-      const memories = this.readJSONFile<MemoryEntry[]>(this.memoriesPath);
+      let memories = this.readJSONFile<MemoryEntry[]>(this.memoriesPath);
+
+      // Duplicate detection
+      if (memory.sessionId) {
+        const sessionMemories = memories.filter(m => m.sessionId === memory.sessionId).slice(-20);
+        for (const sm of sessionMemories) {
+          const jaccard = this.calculateJaccard(sm.content, content);
+          if (jaccard > 0.9) {
+            return sm.id; // Return existing ID if it's a near duplicate
+          }
+        }
+      }
+
       memories.push(memoryWithId);
 
       // Cap at max entries — archive old ones

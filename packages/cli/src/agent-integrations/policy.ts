@@ -36,7 +36,13 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Start session | \`ensure_session\` |
 | Save a turn | \`record_turn\` |
 | Single note | \`save_memory\` |
+| Unified query | \`contexthub_query\` |
 | Find context | \`search_memory\`, \`semantic_search\` |
+| Code graph stats | \`get_code_graph_stats\` |
+| Related symbols | \`get_related_symbols\` |
+| Blast radius | \`get_blast_radius\` |
+| Trace path | \`trace_code_path\` |
+| Search by code | \`search_memory_by_code\` |
 | Full policy text | \`get_agent_policy\` |
 `;
 }

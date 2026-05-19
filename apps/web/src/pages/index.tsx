@@ -1,11 +1,29 @@
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Box, Container, Heading, Text, VStack, Button, HStack, Input, Card, CardBody, Badge, Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
+import { Box, Container, Heading, Text, VStack, Button, HStack, Input, Card, CardBody, Badge, Tabs, TabList, TabPanels, Tab, TabPanel, Stat, StatLabel, StatNumber, StatGroup } from '@chakra-ui/react';
 import { Brain, Search, Clock, FileCode, GitBranch, Settings } from 'lucide-react';
 import MemoryList from '@/components/MemoryList';
 import SearchBar from '@/components/SearchBar';
 import TimelineView from '@/components/TimelineView';
+import { contexthubClient } from '@/lib/contexthub-client';
 
 export default function Home() {
+  const [stats, setStats] = useState<any>({ memories: 0, nodes: 0, edges: 0 });
+  const [health, setHealth] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.all([
+      contexthubClient.getHealth().catch(() => null),
+      contexthubClient.getGraph().catch(() => null),
+    ]).then(([healthData, graphData]) => {
+      if (healthData) setHealth(healthData);
+      setStats({
+        memories: healthData?.memoryCount || 0,
+        nodes: graphData?.stats?.nodeCount || 0,
+        edges: graphData?.stats?.edgeCount || 0
+      });
+    });
+  }, []);
   return (
     <>
       <Head>
@@ -24,7 +42,9 @@ export default function Home() {
                   <Brain size={24} />
                 </Box>
                 <Heading size="lg">ContextHub</Heading>
-                <Badge colorScheme="green" variant="subtle">v1.0.0</Badge>
+                <Badge colorScheme={health?.status === 'ok' ? 'green' : 'red'} variant="subtle">
+                  {health?.status === 'ok' ? 'Connected' : 'Offline'}
+                </Badge>
               </HStack>
               <HStack spacing={4}>
                 <Button leftIcon={<Settings size={16} />} variant="ghost" size="sm">
@@ -81,7 +101,20 @@ export default function Home() {
                 <Card bg="gray.800" border="1px" borderColor="gray.700">
                   <CardBody>
                     <Heading size="md" mb={4}>Code Architecture</Heading>
-                    <Text color="gray.400">Repository analysis will be displayed here.</Text>
+                    <StatGroup>
+                      <Stat>
+                        <StatLabel>Total Nodes</StatLabel>
+                        <StatNumber>{stats.nodes}</StatNumber>
+                      </Stat>
+                      <Stat>
+                        <StatLabel>Total Edges</StatLabel>
+                        <StatNumber>{stats.edges}</StatNumber>
+                      </Stat>
+                      <Stat>
+                        <StatLabel>Total Memories</StatLabel>
+                        <StatNumber>{stats.memories}</StatNumber>
+                      </Stat>
+                    </StatGroup>
                   </CardBody>
                 </Card>
               </TabPanel>

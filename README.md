@@ -25,6 +25,8 @@ ContextHub is a **local-first, privacy-focused AI memory and context orchestrati
 - **🔌 MCP-Compatible** — Works with Claude Code, Cursor, and any MCP client
 - **🔒 Encrypted Storage** — AES-256-GCM encryption at rest for all data
 - **🛡️ Auto-Redaction** — API keys, tokens, and passwords are automatically detected and redacted
+- **🌐 Local Dashboard** — View and explore memories visually
+- **📚 Docs Ingest** — Ingest markdown docs for context
 - **📈 Learns Over Time** — Improves relevance through usage patterns
 - **🌐 Local-First** — All data stays on your machine, never leaves your repo
 
@@ -92,6 +94,12 @@ contexthub start --port 3000
 
 # Stop MCP server cleanly
 contexthub stop
+
+# Launch local dashboard
+contexthub dashboard
+
+# Ingest documentation
+contexthub ingest-docs
 ```
 
 ---
@@ -154,7 +162,10 @@ contexthub/
 | `get_related_files` | Find connected code files |
 | `get_recent_changes` | Git commit history |
 | `get_git_summary` | Git repository status |
-| `update_knowledge_graph` | Refresh code analysis |
+| `update_knowledge_graph` | Refresh code analysis + generate report |
+| `get_god_nodes` | Find highest-connectivity files |
+| `get_graph_communities` | Detect file-level connected components |
+| `ingest_pdf` | Extract text from PDF documents |
 | `list_skills` / `load_skill` | Skills system |
 | `run_skill_command` | Execute built-in skill commands |
 
@@ -188,6 +199,9 @@ export CONTEXTHUB_TOKEN=your-secret-token
 # Optional: Provide your own encryption key
 export CONTEXTHUB_KEY=your-strong-passphrase
 
+# Optional: Enable the ingest_pdf tool (max 50 pages / 20MB per file)
+export CONTEXTHUB_ENABLE_PDF=1
+
 # Verify file permissions
 ls -la .contexthub/
 # Directory: drwx------ (700)
@@ -220,6 +234,19 @@ ContextHub includes **3 built-in skills** (no external skill loading for securit
 | `architect` | `analyze` — Analyze codebase architecture | architecture, design, structure |
 | `debug` | `find-similar` — Find similar past bugs | bug, error, fix, issue |
 | `review` | `review-changes` — Review recent changes | review, pr, pull request |
+
+---
+
+## System Limits
+
+ContextHub enforces strict performance caps centrally to ensure agents don't freeze your system or consume unbounded tokens:
+
+- **Memory Context Size:** 50KB maximum per entry
+- **Total Memories:** 10,000 max entries per repo
+- **Graph Display Nodes:** 5,000 nodes rendered max
+- **Search Query Result:** 100 max entries returned
+- **Repo Parser Limits:** 1,000 files max, 1MB max file size
+- **Memory Tags/Refs:** 20 tags, 20 linked paths, 20 linked symbols
 
 ---
 
@@ -259,16 +286,16 @@ node packages/cli/dist/index.js --help
 
 ## Implementation roadmap
 
-Full AI-agent implementation spec (Phase 1–3): [`docs/IMPLEMENTATION_PROMPT.md`](docs/IMPLEMENTATION_PROMPT.md)
+Implemented features: [`docs/IMPLEMENTED.md`](docs/IMPLEMENTED.md) · Remaining work (agents): [`docs/IMPLEMENTATION_PROMPT.md`](docs/IMPLEMENTATION_PROMPT.md)
 
 ## Roadmap
 
-- [ ] Web Dashboard for memory visualization
+- [x] Web Dashboard for memory visualization
+- [x] Comprehensive test suite
 - [ ] Electron desktop app with system tray
 - [ ] WebSocket transport for MCP
 - [ ] Cloud sync with E2E encryption
 - [ ] Team collaboration features
-- [ ] Comprehensive test suite
 
 ---
 
