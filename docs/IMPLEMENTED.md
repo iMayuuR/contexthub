@@ -94,7 +94,11 @@ Registered in `packages/mcp-server/src/index.ts`:
 
 ### Code graph
 
-`get_code_graph_stats` · `get_related_symbols` · `get_blast_radius` · `trace_code_path` · `update_knowledge_graph` (also writes **`GRAPH_REPORT.md`**)
+**Advanced Utilities**: `get_related_symbols`, `get_blast_radius`, `trace_code_path`, `search_memory_by_code`, `get_god_nodes`, `get_graph_communities`, `explain_symbol`.
+
+**Session Delta Analysis (R-20)**: `what_changed_since_session` and `diff_code_graph` automatically track code graph snapshots and surface the exact code graph delta (nodes/edges added/removed), new memories, and new Git commits since an agent session began.
+
+**Memory Compaction & Decay (R-21)**: Built-in memory compaction (`contexthub compact`) automatically groups and merges adjacent `prompt` and `response` memories into high-density `summary` nodes (preserving `pinned` memories). Provides automated database decay (`archiveOldMemories(maxAgeDays)`) that offloads stale session state into local secure archives (`.contexthub/archive/`).
 
 ### Graph intelligence
 
@@ -112,12 +116,27 @@ Registered in `packages/mcp-server/src/index.ts`:
 
 `list_skills` · `load_skill` · `run_skill_command` — allowlist: `architect`, `debug`, `review`
 
+### Context Bundle
+
+`get_context_bundle` · `explain_symbol`
+
+### MCP Resources & Prompts (R-22)
+
+Exposes read-only environment representations and pre-configured prompt scripts:
+- **Resources**:
+  - `contexthub://policy`: Reads the system agent memory policy and returns it as `text/markdown`.
+  - `contexthub://graph-stats`: Queries the code graph manager and outputs statistics in JSON.
+  - `contexthub://report`: Reads the repository `GRAPH_REPORT.md` (or outputs generation help) as `text/markdown`.
+- **Prompts**:
+  - `summarize-session`: Guides the agent to produce a structured summary of their progress. Accepts optional `sessionId`.
+  - `onboard-repo`: Provides a detailed explanation of the project context, framework, communities, and key files so a new agent can start immediately.
+  - `pre-commit-review`: Provides a checklist prompt template for the LLM to perform pre-commit checks on local staging changes.
+
 ### Implemented in code but **not** registered as MCP tools yet
 
 | Function | File | Remaining |
 |----------|------|-----------|
-| `buildContextBundle` | `context-bundle.ts` | Register `get_context_bundle` + CLI `context` → see backlog **R-15** |
-| `explainSymbol` | `context-bundle.ts` | Register `explain_symbol` → **R-15** |
+| (None) | | |
 
 ---
 
@@ -133,6 +152,8 @@ Registered in `packages/mcp-server/src/index.ts`:
 | `dashboard [--port]` | ✅ (uses `.auth-token`) |
 | **`ingest-docs [patterns...]`** | ✅ |
 | **`report`** | ✅ → `.contexthub/GRAPH_REPORT.md` |
+| `doctor` · `status` · `benchmark` | ✅ |
+| `export-memories` | ✅ portable, encrypted context bundle (`--out`, `--passphrase`) |
 
 ---
 
@@ -169,11 +190,14 @@ Triggered by: `update_knowledge_graph`, **`contexthub report`**, watch (via grap
 
 ---
 
-## 8. Repo parser & tests
+## 8. Parsers (`repo-parser`)
 
-**Languages:** TypeScript, JavaScript, Python, Go, Rust, Java (regex/heuristic).
+**Tree-sitter WASM**: The parser uses `web-tree-sitter` and `@repomix/tree-sitter-wasms` to perform AST-based code traversal and symbol extraction for TypeScript, JavaScript, TSX, and Python. Falls back to Regex automatically if parsing fails.
 
-**Fixtures:** `packages/repo-parser/fixtures/{typescript,python,go,rust,java}/`
+**Regex Fallback**: Uses regex pattern matching to extract symbols, classes, and methods for Go, Rust, Java, Ruby, PHP, C#, Swift, Kotlin, Scala, and C/C++ (and TS/JS/Py if Tree-sitter fails).
+
+**Capabilities**: Extracts classes, functions, variable declarations, methods, imports, and exports (including `__all__` in Python). Supports 15+ core languages natively.
+**Security**: Excludes sensitive files (`.env`, `*.pem`, `id_rsa`, etc.), skips symbolic links natively, and skips files > 50MB. Includes a 5-second per-file timeout for Tree-sitter.
 
 **Tests:**
 
@@ -202,11 +226,9 @@ Triggered by: `update_knowledge_graph`, **`contexthub report`**, watch (via grap
 
 ## 10. Query & embeddings
 
-**`runUnifiedQuery`** (`query-pipeline.ts`): semantic + keyword merge + graph keyword hits + git history keywords → `answerSummary`.
+**`runUnifiedQuery`** (`query-pipeline.ts`): Uses Reciprocal Rank Fusion (RRF) to merge and rank results from semantic, keyword, graph-derived pseudo-hits, and git history pseudo-hits → `answerSummary`.
 
-**Note:** RRF fusion not yet implemented (backlog **R-16**).
-
-**Vector engine:** Deterministic hash-seeded embeddings (no API key). Production bigram/transformers tier → backlog **R-17**.
+**Vector engine:** Supports 3 embedding modes (`local` with Bigram TF weighting, `off` for pure keyword fallback, and `transformers` for lazy-loaded `@xenova/transformers`). Deterministic hash-seeded embeddings (no API key) are the default.
 
 ---
 
@@ -245,6 +267,10 @@ Built-in only: `architect`, `debug`, `review`. Source skill: `packages/skills/co
 | `npm test` | Workspace tests via `--workspaces --if-present` |
 | `publish-packages.js` | Order includes `knowledge-graph`, `docs-ingest`, `plugin-pdf` |
 | **`limits.ts`** | Central caps (memory, query, watch batch, graph display, PDF, dashboard) |
+| **`loadConfig`** | Dynamic config loader parsing `contexthub.config.js` via `createRequire` and validating limits |
+| **Multi-root** | Monorepo configuration mapping multiple `roots` using prefixed node IDs (`pkg:core#src/index.ts`) |
+| **`contexthub ci`** | Non-interactive CI command: runs setup checks, updates code graph, and prints `GRAPH_REPORT` to `$GITHUB_STEP_SUMMARY` |
+| **GitHub Action** | Composite action at `.github/actions/contexthub/action.yml` for posting PR blast-radius comments using secure GH CLI |
 
 ---
 
@@ -254,6 +280,10 @@ Built-in only: `architect`, `debug`, `review`. Source skill: `packages/skills/co
 |------|---------|
 | `CLAUDE.md` · `SECURITY.md` · `AGENT_SETUP.md` · `quick-guide.md` · `README.md` | User + agent docs |
 | **`docs/sync-design.md`** | Team sync design (v1 non-goals, E2E blobs) |
+| **`docs/BENCHMARKS.md`** | Performance benchmark numbers (~3.3s graph build, <10ms searches) |
+| **`docs/COMPARISON_GRAPHIFY.md`** | Architectural highlights comparison between ContextHub and naive Graphify |
+| **`docs/AIRGAP.md`** | Security architecture for completely offline, airgapped deployments |
+| **`examples/demo-repo/`** | Standard demonstration setup with TS, contexthub.config.js, and helper |
 | `docs/index.html` | Marketing / MCP site |
 | `docs/IMPLEMENTED.md` | This file |
 | `docs/IMPLEMENTATION_PROMPT.md` | Remaining backlog only |

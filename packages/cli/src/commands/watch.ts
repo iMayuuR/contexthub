@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SecurityManager } from '@contexthub/core';
+import { SecurityManager, ContexthubIgnore } from '@contexthub/core';
 import { CodeGraphManager } from '@contexthub/knowledge-graph';
 import { VectorEngine } from '@contexthub/vector-engine';
 import { RepoParser } from '@contexthub/repo-parser';
@@ -15,6 +15,7 @@ export interface WatchOptions {
 export async function watchCommand(targetPath: string = '.', options: WatchOptions = {}): Promise<void> {
   const currentDir = process.cwd();
   const security = new SecurityManager(currentDir);
+  const ignore = new ContexthubIgnore(currentDir);
 
   // Validate and resolve target path safely
   let resolvedTarget: string;
@@ -152,6 +153,12 @@ export async function watchCommand(targetPath: string = '.', options: WatchOptio
       }
 
       const relPath = path.relative(currentDir, absPath);
+      
+      // Apply contexthub ignore rules
+      if (ignore.ignores(relPath)) {
+        return;
+      }
+
       changedFiles.add(relPath);
 
       if (debounceTimer) clearTimeout(debounceTimer);

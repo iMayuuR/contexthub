@@ -24,53 +24,20 @@ export async function runUnifiedQuery(
 
   const queryLower = sanitizedQuery.toLowerCase();
 
-  // 1. Semantic Search
-  let semanticResults: VectorSearchResult[] = [];
-  try {
-    if (vectorEngine) {
-      const allMemories = await core.searchMemories({ limit: 1000 });
-      semanticResults = await vectorEngine.searchSimilarText(sanitizedQuery, allMemories, safeLimit);
+  function rrfMerge<T extends { id: string }>(
+    lists: Array<Array<T>>,
+    k = 60
+  ): Map<string, number> {
+    const scores = new Map<string, number>();
+    for (const list of lists) {
+      list.forEach((item, i) => {
+        scores.set(item.id, (scores.get(item.id) || 0) + 1 / (k + i + 1));
+      });
     }
-  } catch (e) {
-    // Ignore and fallback
+    return scores;
   }
 
-  // 2. Keyword Search
-  let keywordResults: MemoryEntry[] = [];
-  try {
-    const allMemories = await core.searchMemories({ limit: 1000 });
-    keywordResults = allMemories.filter(mem =>
-      mem.content.toLowerCase().includes(queryLower) ||
-      mem.tags.some(tag => tag.toLowerCase().includes(queryLower))
-    );
-  } catch (e) {
-    // Ignore
-  }
-
-  // Combine and deduplicate memories
-  const memoriesMap = new Map<string, { memory: MemoryEntry; score: number }>();
-  
-  // Seed with semantic results
-  for (const res of semanticResults) {
-    if (res.metadata) {
-      memoriesMap.set(res.id, { memory: res.metadata, score: res.score });
-    }
-  }
-  
-  // Merge keyword results
-  for (const mem of keywordResults) {
-    const existing = memoriesMap.get(mem.id);
-    const score = existing ? Math.max(existing.score, 0.8) : 0.5; // High score if keyword matches
-    memoriesMap.set(mem.id, { memory: mem, score });
-  }
-
-  // Sort and limit memories
-  const sortedMemories = Array.from(memoriesMap.values())
-    .sort((a, b) => b.score - a.score)
-    .map(x => x.memory)
-    .slice(0, safeLimit);
-
-  // 3. Code Graph Traversal
+  // 1. Code Graph Traversal
   const codeHits: Array<{ path: string; symbol?: string; reason: string }> = [];
   let trace: { hops: Array<{ type: string; id: string; label: string }> } | undefined = undefined;
 
@@ -78,9 +45,7 @@ export async function runUnifiedQuery(
     if (graphManager) {
       const graph = await graphManager.loadGraph();
       
-      // Find matching files or symbols referenced in the query
       const referencedNodes: CodeGraphNode[] = [];
-      
       for (const node of graph.nodes) {
         if (node.kind === 'file') {
           const basename = path.basename(node.path).toLowerCase();
@@ -89,7 +54,6 @@ export async function runUnifiedQuery(
           }
         } else if (node.kind === 'symbol' && node.name) {
           const symLower = node.name.toLowerCase();
-          // Match whole symbol name if possible to avoid false partials
           const regex = new RegExp('\\b' + symLower + '\\b');
           if (regex.test(queryLower)) {
             referencedNodes.push(node);
@@ -97,7 +61,6 @@ export async function runUnifiedQuery(
         }
       }
 
-      // Add referenced nodes as direct hits
       for (const node of referencedNodes) {
         codeHits.push({
           path: node.path,
@@ -105,7 +68,6 @@ export async function runUnifiedQuery(
           reason: `Directly mentioned in query`
         });
 
-        // Fetch direct neighbors/related symbols
         const related = await graphManager.getRelatedSymbols(node.id, 5);
         for (const rel of related) {
           if (!codeHits.some(h => h.path === rel.path && h.symbol === rel.name)) {
@@ -118,7 +80,6 @@ export async function runUnifiedQuery(
         }
       }
 
-      // BFS trace path if two entities are detected
       if (referencedNodes.length >= 2) {
         const fromNode = referencedNodes[0];
         const toNode = referencedNodes[1];
@@ -132,7 +93,7 @@ export async function runUnifiedQuery(
     // Ignore
   }
 
-  // 4. Git Recent Changes
+  // 2. Git Recent Changes
   let gitHits: any[] | undefined = undefined;
   const historyKeywords = ['recent', 'change', 'git', 'commit', 'log', 'history', 'branch', 'timeline'];
   const wantsHistory = historyKeywords.some(kw => queryLower.includes(kw));
@@ -151,7 +112,54 @@ export async function runUnifiedQuery(
     }
   }
 
-  // 5. Deterministic Stitched Answer Summary
+  // 3. Load Memories
+  let allMemories: MemoryEntry[] = [];
+  try {
+    allMemories = await core.searchMemories({ limit: 1000 });
+  } catch (e) {}
+
+  // 4. Semantic Search
+  let semanticResults: VectorSearchResult[] = [];
+  try {
+    if (vectorEngine && allMemories.length > 0) {
+      semanticResults = await vectorEngine.searchSimilarText(sanitizedQuery, allMemories, 50);
+    }
+  } catch (e) {}
+
+  // 5. Keyword Search
+  const keywordResults = allMemories.filter(mem =>
+    mem.content.toLowerCase().includes(queryLower) ||
+    mem.tags.some(tag => tag.toLowerCase().includes(queryLower))
+  ).slice(0, 50);
+
+  // 6. Graph Pseudo-hits
+  const graphMemories = allMemories.filter(mem => {
+    const matchPath = mem.relatedPaths?.some(p => codeHits.some(c => c.path === p));
+    const matchSym = mem.relatedSymbols?.some(s => codeHits.some(c => c.symbol === s));
+    return matchPath || matchSym;
+  }).slice(0, 50);
+
+  // 7. Git Pseudo-hits
+  const gitMemories = allMemories.filter(mem => {
+    if (!mem.commitHash || !gitHits) return false;
+    return gitHits.some(g => mem.commitHash!.startsWith(g.hash));
+  }).slice(0, 50);
+
+  // 8. RRF Merge
+  const rrfScores = rrfMerge([
+    semanticResults as any,
+    keywordResults,
+    graphMemories,
+    gitMemories
+  ]);
+
+  const sortedMemories = Array.from(rrfScores.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => allMemories.find(m => m.id === id)!)
+    .filter(Boolean)
+    .slice(0, safeLimit);
+
+  // 9. Deterministic Stitched Answer Summary
   let answerSummary = `### ContextHub Query Results for "${sanitizedQuery}"\n\n`;
   answerSummary += `* Found ${sortedMemories.length} relevant memory entries.\n`;
   if (codeHits.length > 0) {

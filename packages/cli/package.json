@@ -38,6 +38,7 @@
   "scripts": {
     "build": "tsc && node -e \"require('fs').cpSync('src/templates','dist/templates',{recursive:true})\"",
     "dev": "tsc --watch",
+    "test": "tsc && node --test dist/__tests__/*.test.js",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

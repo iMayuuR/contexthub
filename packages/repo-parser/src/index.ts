@@ -2,7 +2,8 @@ import type { ParsedFile, Symbol, ImportExport } from '@contexthub/shared-types'
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
-import { MAX_FILES_PER_SCAN, MAX_INGEST_FILE_SIZE } from '@contexthub/core';
+import { MAX_FILES_PER_SCAN, MAX_INGEST_FILE_SIZE, ContexthubIgnore } from '@contexthub/core';
+import { TreeSitterParser } from './tree-sitter';
 
 const SENSITIVE_FILE_PATTERNS = [
   '.env', '.env.local', '.env.production', '.env.staging',
@@ -24,9 +25,11 @@ function isSensitiveFile(filePath: string): boolean {
 
 export class RepoParser {
   private repoPath: string;
+  private tsParser: TreeSitterParser;
 
   constructor(repoPath: string) {
     this.repoPath = repoPath;
+    this.tsParser = new TreeSitterParser();
   }
 
   /**
@@ -404,6 +407,260 @@ export class RepoParser {
     return { symbols, imports, exports };
   }
 
+  /**
+   * Parse a Ruby file for symbols and imports
+   */
+  private parseRuby(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class
+      const classMatch = trimmed.match(/^class\s+([\w:]+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Method / Function
+      const defMatch = trimmed.match(/^def\s+([\w!?.]+)/);
+      if (defMatch) {
+        symbols.push({ type: 'function', name: defMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Imports
+      const requireMatch = trimmed.match(/^(?:require|require_relative)\s+['"](.+?)['"]/);
+      if (requireMatch) {
+        imports.push({ source: requireMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a PHP file for symbols and imports
+   */
+  private parsePhp(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class / Interface / Trait
+      const classMatch = trimmed.match(/^(?:abstract\s+|final\s+)?(?:class|interface|trait)\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Function
+      const funcMatch = trimmed.match(/^(?:public|protected|private|static|\s)*function\s+(\w+)/);
+      if (funcMatch) {
+        symbols.push({ type: 'function', name: funcMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Imports (use, require, include)
+      const useMatch = trimmed.match(/^use\s+([^;]+);/);
+      if (useMatch) {
+        imports.push({ source: useMatch[1].trim(), imported: ['*'], isDefault: false, lineNumber });
+      }
+      const reqMatch = trimmed.match(/^(?:require|require_once|include|include_once)\s*['"](.+?)['"]/);
+      if (reqMatch) {
+        imports.push({ source: reqMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a C# file for symbols and imports
+   */
+  private parseCSharp(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class / Interface / Struct / Record
+      const classMatch = trimmed.match(/^(?:public|private|protected|internal|static|\s)*(?:class|interface|struct|record)\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Method / Function
+      const methodMatch = trimmed.match(/^(?:public|private|protected|internal|static|async|override|\s)+[\w<>[\]]+ +(\w+) *\([^)]*\)/);
+      if (methodMatch) {
+        if (!['if', 'for', 'while', 'switch', 'using', 'catch'].includes(methodMatch[1])) {
+          symbols.push({ type: 'method', name: methodMatch[1], lineNumber, columnNumber: 0 });
+        }
+      }
+
+      // Imports (using)
+      const usingMatch = trimmed.match(/^using\s+([^;=]+);/);
+      if (usingMatch) {
+        imports.push({ source: usingMatch[1].trim(), imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a Swift file for symbols and imports
+   */
+  private parseSwift(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class / Struct / Protocol / Enum
+      const classMatch = trimmed.match(/^(?:public|private|internal|fileprivate|\s)*(?:class|struct|protocol|enum)\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Function
+      const funcMatch = trimmed.match(/^(?:public|private|internal|fileprivate|static|class|\s)*func\s+(\w+)/);
+      if (funcMatch) {
+        symbols.push({ type: 'function', name: funcMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Imports
+      const importMatch = trimmed.match(/^import\s+(\w+)/);
+      if (importMatch) {
+        imports.push({ source: importMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a Kotlin file for symbols and imports
+   */
+  private parseKotlin(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class / Interface / Object
+      const classMatch = trimmed.match(/^(?:open|abstract|sealed|data|internal|\s)*(?:class|interface|object)\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Function
+      const funcMatch = trimmed.match(/^(?:open|override|internal|public|private|\s)*fun\s+(\w+)/);
+      if (funcMatch) {
+        symbols.push({ type: 'function', name: funcMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Imports
+      const importMatch = trimmed.match(/^import\s+([\w.]+)/);
+      if (importMatch) {
+        imports.push({ source: importMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a Scala file for symbols and imports
+   */
+  private parseScala(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class / Object / Trait
+      const classMatch = trimmed.match(/^(?:abstract|case|\s)*(?:class|object|trait)\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Function
+      const funcMatch = trimmed.match(/^(?:override|private|protected|\s)*def\s+(\w+)/);
+      if (funcMatch) {
+        symbols.push({ type: 'function', name: funcMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Imports
+      const importMatch = trimmed.match(/^import\s+([\w.{}_]+)/);
+      if (importMatch) {
+        imports.push({ source: importMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
+  /**
+   * Parse a C/C++ file for symbols and imports
+   */
+  private parseCPP(content: string): { symbols: Symbol[]; imports: ImportExport[]; exports: ImportExport[] } {
+    const symbols: Symbol[] = [];
+    const imports: ImportExport[] = [];
+    const exports: ImportExport[] = [];
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      const lineNumber = index + 1;
+
+      // Class / Struct
+      const classMatch = trimmed.match(/^(?:class|struct)\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ type: 'class', name: classMatch[1], lineNumber, columnNumber: 0 });
+      }
+
+      // Function / Method
+      const funcMatch = trimmed.match(/^[\w<>[\]:*&]+ +(\w+::)?(\w+) *\([^)]*\) *(?:const)? *\{?/);
+      if (funcMatch) {
+        const name = funcMatch[1] ? funcMatch[1] + funcMatch[2] : funcMatch[2];
+        if (!['if', 'for', 'while', 'switch', 'catch', 'return'].includes(funcMatch[2])) {
+          symbols.push({ type: 'function', name, lineNumber, columnNumber: 0 });
+        }
+      }
+
+      // Imports (#include)
+      const includeMatch = trimmed.match(/^#include\s+['"<](.+?)['">]/);
+      if (includeMatch) {
+        imports.push({ source: includeMatch[1], imported: ['*'], isDefault: false, lineNumber });
+      }
+    });
+
+    return { symbols, imports, exports };
+  }
+
 
   /**
    * Parse a single file (with size limit and sensitive file check)
@@ -450,32 +707,80 @@ export class RepoParser {
       }
 
       const content = fs.readFileSync(filePath, 'utf-8');
+      const language = this.detectLanguage(filePath);
 
-      if (ext === 'ts' || ext === 'tsx' || ext === 'js' || ext === 'jsx' || ext === 'mjs' || ext === 'cjs') {
-        const parsed = this.parseJSTS(content);
+      let parsed = null;
+      if (['typescript', 'javascript', 'tsx', 'python'].includes(language)) {
+        parsed = await this.tsParser.parse(content, language);
+      }
+
+      if (parsed) {
         symbols = parsed.symbols;
         imports = parsed.imports;
         exports = parsed.exports;
-      } else if (ext === 'py') {
-        const parsed = this.parsePython(content);
-        symbols = parsed.symbols;
-        imports = parsed.imports;
-        exports = parsed.exports;
-      } else if (ext === 'go') {
-        const parsed = this.parseGo(content);
-        symbols = parsed.symbols;
-        imports = parsed.imports;
-        exports = parsed.exports;
-      } else if (ext === 'rs') {
-        const parsed = this.parseRust(content);
-        symbols = parsed.symbols;
-        imports = parsed.imports;
-        exports = parsed.exports;
-      } else if (ext === 'java') {
-        const parsed = this.parseJava(content);
-        symbols = parsed.symbols;
-        imports = parsed.imports;
-        exports = parsed.exports;
+      } else {
+        // Fallback to regex parser
+        if (ext === 'ts' || ext === 'tsx' || ext === 'js' || ext === 'jsx' || ext === 'mjs' || ext === 'cjs') {
+          const regexParsed = this.parseJSTS(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'py') {
+          const regexParsed = this.parsePython(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'go') {
+          const regexParsed = this.parseGo(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'rs') {
+          const regexParsed = this.parseRust(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'java') {
+          const regexParsed = this.parseJava(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'rb') {
+          const regexParsed = this.parseRuby(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'php') {
+          const regexParsed = this.parsePhp(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'cs') {
+          const regexParsed = this.parseCSharp(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'swift') {
+          const regexParsed = this.parseSwift(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'kt' || ext === 'kts') {
+          const regexParsed = this.parseKotlin(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (ext === 'scala') {
+          const regexParsed = this.parseScala(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        } else if (['cpp', 'cc', 'cxx', 'c++', 'c', 'h', 'hpp'].includes(ext || '')) {
+          const regexParsed = this.parseCPP(content);
+          symbols = regexParsed.symbols;
+          imports = regexParsed.imports;
+          exports = regexParsed.exports;
+        }
       }
     } catch (e) {
       // Sanitized error — don't expose full path
@@ -494,9 +799,10 @@ export class RepoParser {
   /**
    * Parse all code files in a directory (with security restrictions)
    */
-  async parseDirectory(dirPath: string, patterns: string[] = ['**/*.{ts,tsx,js,jsx,py,go,rs,java}']): Promise<ParsedFile[]> {
+  async parseDirectory(dirPath: string, patterns: string[] = ['**/*.{ts,tsx,js,jsx,py,go,rs,java,rb,php,cs,swift,kt,kts,scala,c,h,cpp,cc,cxx,hpp}']): Promise<ParsedFile[]> {
     const results: ParsedFile[] = [];
     const repoRoot = path.resolve(this.repoPath);
+    const ignore = new ContexthubIgnore(this.repoPath);
 
     for (const pattern of patterns) {
       const files = await glob(pattern, { cwd: dirPath, absolute: true });
@@ -514,6 +820,9 @@ export class RepoParser {
         if (!resolved.startsWith(repoRoot + path.sep) && resolved !== repoRoot) {
           continue;
         }
+
+        const relPath = path.relative(repoRoot, resolved);
+        if (ignore.ignores(relPath)) continue;
 
         // Skip node_modules, .contexthub, and sensitive files
         if (file.includes('node_modules') || file.includes('.contexthub')) continue;

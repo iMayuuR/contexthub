@@ -6,6 +6,7 @@ export interface ActiveSessionState {
   sessionId: string;
   agent: string;
   startedAt: number;
+  graphSnapshotId?: string;
 }
 
 export function activeSessionPath(repoPath: string): string {

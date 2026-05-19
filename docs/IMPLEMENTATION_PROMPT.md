@@ -11,41 +11,15 @@
 ## 1. Backlog
 
 | ID | Task | Block |
-|----|------|-------|
-| 5.3 | Wire `get_context_bundle` + `explain_symbol` MCP + `contexthub context` CLI | R-15 |
-| 5.4 | RRF hybrid query | R-16 |
-| 5.5 | Better local embeddings (bigram TF / optional transformers) | R-17 |
-| 5.6 | Tree-sitter TS/JS/Py (+ regex fallback) | R-18 |
-| 5.7 | `.contexthubignore` + `doctor` + `status` + `benchmark` | R-19 |
-| 5.8 | `what_changed_since_session` + `diff_code_graph` | R-20 |
-| 5.9 | Memory decay + `contexthub compact` | R-21 |
-| 5.10 | MCP resources + prompts | R-22 |
-| 5.11 | `contexthub ci` + GitHub Action PR summary | R-23 |
-| 5.12 | Monorepo `contexthub.config.js` multi-root | R-24 |
-| 5.13 | Demo repo + `BENCHMARKS.md` + `COMPARISON_GRAPHIFY.md` + `AIRGAP.md` | R-25 |
-| 3.2 | 15+ repo-parser languages | R-10 |
-| — | `export-memories` CLI (optional) | R-27 |
+*(No outstanding backlog items remaining)*
 
-**Not in backlog (done):** memory linking, skill install, parser tests, CI, publish order, ingest-docs, dashboard auth, apps/web client, god-nodes, communities, GRAPH_REPORT, plugin-pdf, `sync-design.md`, `limits.ts`.
+**Not in backlog (done):** memory linking, skill install, parser tests, CI, publish order, ingest-docs, dashboard auth, apps/web client, god-nodes, communities, GRAPH_REPORT, plugin-pdf, `sync-design.md`, `limits.ts`, `get_context_bundle` + `explain_symbol` MCP, `.contexthubignore` + `doctor` + `status` + `benchmark`, `RRF hybrid query`, `Embeddings upgrade`, `Tree-sitter WASM`, `Session graph delta`, `Memory decay + compact`, `MCP resources + prompts`, `Multi-root config`, `Config loader`, `CI Integration`, `PR blast-radius commenting`, `Demo repo & comparison docs`, `15+ repo-parser languages`, `export-memories CLI`.
 
 ---
 
 ## 2. Work order
 
-```
-1. R-15  Wire context bundle (code exists — quick win)
-2. R-19  doctor/status/benchmark + .contexthubignore
-3. R-16  RRF query
-4. R-17  Embeddings upgrade
-5. R-13  (skip — done) → R-14 (skip — done)
-6. R-18  Tree-sitter
-7. R-20 → R-21 → R-22
-8. R-24  config loader (before R-16 weights if config-driven)
-9. R-23  CI command + Action
-10. R-25  Demo + docs
-11. R-10  Languages (one PR per language)
-12. R-27  export-memories (optional)
-```
+*(All backlog tasks are successfully completed)*
 
 One block per PR unless user batches.
 

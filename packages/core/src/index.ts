@@ -5,6 +5,8 @@ import type { Session, MemoryEntry, ProjectMetadata } from '@contexthub/shared-t
 export { SecurityManager } from './security';
 export { runUnifiedQuery, UnifiedQueryResult } from './query-pipeline';
 export * from './limits';
+export * from './contexthub-ignore';
+export { ContexthubConfig, loadConfig } from './config';
 
 
 export class ContextHubCore {
@@ -55,6 +57,15 @@ export class ContextHubCore {
     offset?: number;
   }): Promise<MemoryEntry[]> {
     return this.storage.searchMemories(options);
+  }
+
+  // Maintenance & Compaction
+  async archiveOldMemories(maxAgeDays: number): Promise<number> {
+    return this.storage.archiveOldMemories(maxAgeDays);
+  }
+
+  async compactMemories(): Promise<number> {
+    return this.storage.compactMemories();
   }
 
   // Project metadata

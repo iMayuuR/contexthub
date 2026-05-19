@@ -1,0 +1,14 @@
+{
+  "name": "contexthub-demo-repo",
+  "version": "1.0.0",
+  "description": "Demo repository highlighting ContextHub integration capabilities",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

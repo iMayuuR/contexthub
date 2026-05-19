@@ -1,0 +1,43 @@
+name: 'ContextHub CI & Blast-Radius Action'
+description: 'Verify setup, update graph, and post PR blast-radius comments securely'
+inputs:
+  github-token:
+    description: 'GitHub Token for posting PR comments'
+    required: true
+    default: ${{ github.token }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Run ContextHub CI Verification and Update
+      shell: bash
+      run: |
+        npx contexthub ci
+
+    - name: PR Blast-Radius Commenting
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        # Fetch target branch if inside PR
+        if [ -n "$GITHUB_BASE_REF" ]; then
+          git fetch origin "$GITHUB_BASE_REF" --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/"$GITHUB_BASE_REF"...HEAD | tr '\n' ' ')
+        else
+          CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | tr '\n' ' ')
+        fi
+
+        if [ -n "$CHANGED_FILES" ]; then
+          echo "Analyzing blast-radius for: $CHANGED_FILES"
+          npx contexthub blast-radius $CHANGED_FILES > blast-radius-report.md
+          
+          # Comment using GH CLI
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body-file blast-radius-report.md
+          else
+            gh pr comment --body-file blast-radius-report.md || echo "Skipping PR comment: Not in a PR context."
+          fi
+        else
+          echo "No files modified."
+        fi

@@ -11,13 +11,18 @@ interface EmbeddingStore {
   [id: string]: number[];
 }
 
+export type EmbeddingMode = 'local' | 'off' | 'transformers';
+
 export class VectorEngine {
   private embeddingsPath: string;
   private embeddings: EmbeddingStore;
   private dimension: number;
+  private mode: EmbeddingMode;
+  private static extractor: any = null;
 
-  constructor(repoPath: string, dimension: number = 1536) {
-    this.dimension = dimension;
+  constructor(repoPath: string, mode: EmbeddingMode = 'local') {
+    this.mode = mode;
+    this.dimension = mode === 'transformers' ? 384 : 1536;
     this.embeddingsPath = path.join(repoPath, '.contexthub', 'embeddings');
     this.embeddings = this.loadEmbeddings();
   }
@@ -69,31 +74,78 @@ export class VectorEngine {
   }
 
   /**
-   * Generate embedding from text using a simple TF-IDF style approach
-   * This is a placeholder - in production, use OpenAI embeddings or local models
+   * Lazy load the transformers pipeline
+   */
+  private async getExtractor(): Promise<any> {
+    if (!VectorEngine.extractor) {
+      try {
+        // Use dynamic import to avoid static dependency and bundle bloat
+        const transformers = await Function('return import("@xenova/transformers")')();
+        // Setup cache dir within .contexthub if we want, or rely on default
+        VectorEngine.extractor = await transformers.pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+      } catch (e: any) {
+        throw new Error('Failed to load @xenova/transformers. Install it with: npm install @xenova/transformers\n' + e.message);
+      }
+    }
+    return VectorEngine.extractor;
+  }
+
+  /**
+   * Generate embedding from text using the selected mode
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    if (this.mode === 'off') {
+      return [];
+    }
+
+    if (this.mode === 'transformers') {
+      const extractor = await this.getExtractor();
+      const output = await extractor(text, { pooling: 'mean', normalize: true });
+      return Array.from(output.data);
+    }
+
+    // Local mode: Hash + Bigram TF weighting
+    const words = text.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+    const termFreqs = new Map<string, number>();
+
+    // Unigrams
+    for (const word of words) {
+      termFreqs.set(word, (termFreqs.get(word) || 0) + 1);
+    }
+
+    // Bigrams
+    for (let i = 0; i < words.length - 1; i++) {
+      const bigram = `${words[i]} ${words[i+1]}`;
+      termFreqs.set(bigram, (termFreqs.get(bigram) || 0) + 1);
+    }
+
     const embedding = new Array(this.dimension).fill(0);
 
-    // Simple hash-based seeding for deterministic embeddings
-    words.forEach((word, index) => {
+    for (const [term, freq] of termFreqs.entries()) {
       let hash = 0;
-      for (let i = 0; i < word.length; i++) {
-        hash = ((hash << 5) - hash) + word.charCodeAt(i);
+      for (let i = 0; i < term.length; i++) {
+        hash = ((hash << 5) - hash) + term.charCodeAt(i);
         hash = hash & hash;
       }
       const seed = Math.abs(hash);
+      
+      const isBigram = term.includes(' ');
+      
+      // Spread across 3 positions based on seed
+      const pos1 = seed % this.dimension;
+      const pos2 = (seed * 17) % this.dimension;
+      const pos3 = (seed * 31) % this.dimension;
 
-      // Use multiple positions based on word characteristics
-      const pos1 = (seed + index * 7) % this.dimension;
-      const pos2 = (seed + index * 13 + 1) % this.dimension;
-      const pos3 = (seed * 3 + index * 17) % this.dimension;
+      // TF weighting: 1 + log10(tf)
+      const tfWeight = 1 + Math.log10(freq);
+      
+      // Bigrams receive a slight multiplier to emphasize phrase matches
+      const weight = tfWeight * (isBigram ? 1.5 : 1.0);
 
-      embedding[pos1] += 1;
-      embedding[pos2] += 0.5;
-      embedding[pos3] += 0.25;
-    });
+      embedding[pos1] += weight;
+      embedding[pos2] += weight * 0.5;
+      embedding[pos3] += weight * 0.25;
+    }
 
     // Normalize
     const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));

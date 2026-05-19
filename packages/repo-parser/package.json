@@ -27,7 +27,10 @@
   },
   "dependencies": {
     "@contexthub/shared-types": "^1.0.0",
-    "glob": "^10.0.0"
+    "@repomix/tree-sitter-wasms": "^0.1.17",
+    "glob": "^10.0.0",
+    "tree-sitter-wasms": "^0.1.13",
+    "web-tree-sitter": "^0.26.9"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

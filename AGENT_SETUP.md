@@ -87,6 +87,8 @@ Once connected, you have access to the following secure tools. Always use them t
 | Tool Name | Key Parameters | Purpose |
 |-----------|----------------|---------|
 | `get_project_context` | None | Retrieves high-level project details and active sessions |
+| `get_context_bundle` | `query`, `path`, `sessionId`, `limit` | Generates a unified, intelligent context bundle combining memories, graph symbols, and git |
+| `explain_symbol` | `symbol`, `path` | Explains a specific symbol's definition, callers, and related memories |
 | `save_memory` | `content` (string), `type` (string), `tags` (string[]) | Saves critical decisions, bug fixes, or architecture details |
 | `search_memory` | `query` (string), `limit` (number) | Performs a text-based search over past encrypted memories |
 | `semantic_search` | `query` (string), `limit` (number) | Uses vector search to find conceptually related memories |

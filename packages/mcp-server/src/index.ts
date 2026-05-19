@@ -44,6 +44,7 @@ import {
   writeActiveSession,
   clearActiveSession,
 } from './session-state';
+import { registerResourcesAndPrompts } from './resources';
 
 let core: ContextHubCore | null = null;
 let security: SecurityManager | null = null;
@@ -271,10 +272,22 @@ async function ensureSession(agent: string, forceNew: boolean = false) {
     }
   }
 
-  const sessionId = await ctx.createSession(sanitizedAgent, { autoMemory: true });
+  // Generate a graph snapshot at the start of the session
+  let graphSnapshotId = undefined;
+  try {
+    // Update graph first to ensure snapshot is fresh
+    await updateKnowledgeGraph().catch(() => {});
+    const graphManager = new CodeGraphManager(repoPath);
+    graphSnapshotId = await graphManager.createGraphSnapshot();
+    if (!graphSnapshotId) graphSnapshotId = undefined;
+  } catch (e) {
+    // ignore
+  }
+
+  const sessionId = await ctx.createSession(sanitizedAgent, { autoMemory: true, graphSnapshotId });
   writeActiveSession(
     repoPath,
-    { sessionId, agent: sanitizedAgent, startedAt: Date.now() },
+    { sessionId, agent: sanitizedAgent, startedAt: Date.now(), graphSnapshotId },
     sec
   );
   return { sessionId, agent: sanitizedAgent, resumed: false };
@@ -525,6 +538,91 @@ async function semanticSearch(query: string, limit: number = 10) {
       tags: r.metadata?.tags || []
     })),
     totalMatches: results.length
+  };
+}
+
+async function diffCodeGraphMcp(baseSnapshotId?: string, headSnapshotId?: string) {
+  const repoPath = process.cwd();
+  const graphManager = new CodeGraphManager(repoPath);
+
+  let oldGraph = baseSnapshotId ? await graphManager.loadGraphSnapshot(baseSnapshotId) : null;
+  let newGraph = headSnapshotId ? await graphManager.loadGraphSnapshot(headSnapshotId) : null;
+
+  if (!newGraph) {
+    newGraph = await graphManager.loadGraph().catch(() => null);
+  }
+  if (!oldGraph) {
+    oldGraph = { version: '1.0.0', updatedAt: 0, nodes: [], edges: [] };
+  }
+  if (!newGraph) {
+    return { error: 'No current graph found and head snapshot failed to load.' };
+  }
+
+  const diff = graphManager.diffCodeGraph(oldGraph, newGraph);
+  return { diff };
+}
+
+async function whatChangedSinceSessionMcp(sessionId: string) {
+  const ctx = getCore();
+  const sec = getSecurity();
+  const repoPath = process.cwd();
+  const safeSessionId = sec.sanitizeInput(sessionId, 50);
+
+  const sessions = await ctx.getSessions(50);
+  const session = sessions.find(s => s.id === safeSessionId);
+
+  if (!session) {
+    return { error: 'Session not found' };
+  }
+
+  const graphSnapshotId = session.metadata?.graphSnapshotId;
+  const startedAt = session.startTime;
+
+  // Code graph diff
+  let codeDiff = null;
+  if (graphSnapshotId) {
+    const graphManager = new CodeGraphManager(repoPath);
+    const oldGraph = await graphManager.loadGraphSnapshot(graphSnapshotId);
+    if (oldGraph) {
+      const newGraph = await graphManager.loadGraph().catch(() => null);
+      if (newGraph) {
+        codeDiff = graphManager.diffCodeGraph(oldGraph, newGraph);
+      }
+    }
+  }
+
+  // Memories diff
+  const allMemories = await ctx.searchMemories({ limit: 1000 });
+  const newMemories = allMemories.filter(m => m.timestamp >= startedAt);
+
+  // Git diff
+  let gitDiff = null;
+  if (gitIntegration) {
+    try {
+      const summary = await gitIntegration.getGitSummary();
+      const recentCommits = summary.recentCommits?.filter(c => new Date(c.date).getTime() >= startedAt) || [];
+      gitDiff = {
+        status: summary.status,
+        recentCommits
+      };
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    sessionId: safeSessionId,
+    startedAt,
+    codeGraphChanges: codeDiff ? {
+      addedNodes: codeDiff.addedNodes.length,
+      removedNodes: codeDiff.removedNodes.length,
+      addedEdges: codeDiff.addedEdges.length,
+      removedEdges: codeDiff.removedEdges.length,
+      diff: codeDiff
+    } : null,
+    newMemoriesCount: newMemories.length,
+    newMemories: newMemories.map(m => ({ id: m.id, type: m.type, tags: m.tags, commitHash: m.commitHash })),
+    gitChanges: gitDiff
   };
 }
 
@@ -887,6 +985,9 @@ async function main() {
     version: '1.0.0'
   });
 
+  // Register resources and prompts
+  registerResourcesAndPrompts(server);
+
   // Register all tools (wrapped with safe error handling)
   server.tool('get_project_context', {}, safeHandler(getProjectContext));
 
@@ -1006,10 +1107,36 @@ async function main() {
 
   server.tool('get_graph_communities', {}, safeHandler(getGraphCommunities));
 
+  server.tool('diff_code_graph', {
+    baseSnapshotId: { type: 'string', optional: true },
+    headSnapshotId: { type: 'string', optional: true }
+  }, safeHandler(async ({ baseSnapshotId, headSnapshotId }: any) => diffCodeGraphMcp(baseSnapshotId, headSnapshotId)));
+
+  server.tool('what_changed_since_session', {
+    sessionId: { type: 'string' }
+  }, safeHandler(async ({ sessionId }: any) => whatChangedSinceSessionMcp(sessionId)));
+
   server.tool('contexthub_query', {
     query: { type: 'string' },
     limit: { type: 'number', optional: true }
   }, safeHandler(async ({ query, limit }: any) => contexthubQueryMcp(query, limit)));
+
+  server.tool('get_context_bundle', {
+    query: { type: 'string', optional: true },
+    path: { type: 'string', optional: true },
+    sessionId: { type: 'string', optional: true },
+    limit: { type: 'number', optional: true }
+  }, safeHandler(async (args: any) => {
+    if (!args.query && !args.path && !args.sessionId) {
+      throw new Error('Must provide at least one of query, path, or sessionId');
+    }
+    return getContextBundleMcp(args.query, args.path);
+  }));
+
+  server.tool('explain_symbol', {
+    symbol: { type: 'string' },
+    path: { type: 'string', optional: true }
+  }, safeHandler(async ({ symbol }: any) => explainSymbolMcp(symbol)));
 
   if (process.env.CONTEXTHUB_ENABLE_PDF === '1') {
     server.tool('ingest_pdf', {
@@ -1032,3 +1159,4 @@ if (require.main === module) {
 }
 
 export { buildSkillMarkdown } from './agent-policy';
+export { buildContextBundle, explainSymbol } from './context-bundle';

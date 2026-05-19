@@ -338,6 +338,111 @@ export class MemoryStorage {
     }
   }
 
+  // ── Maintenance & Compaction ───────────────────────────────────────────
+
+  async archiveOldMemories(maxAgeDays: number): Promise<number> {
+    const release = await this.mutex.acquire();
+    try {
+      const memories = this.readJSONFile<MemoryEntry[]>(this.memoriesPath);
+      const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+
+      const toKeep: MemoryEntry[] = [];
+      const toArchive: MemoryEntry[] = [];
+
+      for (const m of memories) {
+        if (m.timestamp < cutoff && !m.tags.includes('pinned')) {
+          toArchive.push(m);
+        } else {
+          toKeep.push(m);
+        }
+      }
+
+      if (toArchive.length > 0) {
+        this.writeJSONFileSync(this.memoriesPath, toKeep);
+
+        // Write to archive file
+        const archiveDir = path.join(this.contexthubPath, 'archive');
+        if (!fs.existsSync(archiveDir)) {
+          fs.mkdirSync(archiveDir, { recursive: true });
+          this.security.setSecurePermissions(archiveDir, true);
+        }
+        
+        const archivePath = path.join(archiveDir, `memories-${Date.now()}.json`);
+        this.writeJSONFileSync(archivePath, toArchive);
+      }
+
+      return toArchive.length;
+    } finally {
+      release();
+    }
+  }
+
+  async compactMemories(): Promise<number> {
+    const release = await this.mutex.acquire();
+    try {
+      let memories = this.readJSONFile<MemoryEntry[]>(this.memoriesPath);
+      let mergedCount = 0;
+      
+      // We will group by sessionId and then look for adjacent prompt -> response
+      const sessionMap = new Map<string, MemoryEntry[]>();
+      for (const m of memories) {
+        if (!sessionMap.has(m.sessionId)) sessionMap.set(m.sessionId, []);
+        sessionMap.get(m.sessionId)!.push(m);
+      }
+
+      const newMemories: MemoryEntry[] = [];
+
+      for (const [sessionId, sessionMems] of sessionMap.entries()) {
+        // Sort chronologically to find adjacent pairs easily
+        sessionMems.sort((a, b) => a.timestamp - b.timestamp);
+        
+        let i = 0;
+        while (i < sessionMems.length) {
+          const m1 = sessionMems[i];
+          const m2 = i + 1 < sessionMems.length ? sessionMems[i + 1] : null;
+
+          if (
+            m2 &&
+            m1.type === 'prompt' &&
+            m2.type === 'response' &&
+            !m1.tags.includes('pinned') &&
+            !m2.tags.includes('pinned')
+          ) {
+            // Merge them
+            const mergedContent = `Prompt: ${m1.content}\n\nResponse: ${m2.content}`;
+            const mergedTags = Array.from(new Set([...m1.tags, ...m2.tags]));
+            const mergedPaths = Array.from(new Set([...(m1.relatedPaths || []), ...(m2.relatedPaths || [])])).slice(0, 20);
+            
+            newMemories.push({
+              id: crypto.randomUUID(),
+              sessionId: sessionId,
+              type: 'summary',
+              content: mergedContent,
+              timestamp: m2.timestamp,
+              tags: mergedTags,
+              relatedPaths: mergedPaths.length > 0 ? mergedPaths : undefined,
+              commitHash: m2.commitHash || m1.commitHash,
+              branch: m2.branch || m1.branch
+            });
+            mergedCount++;
+            i += 2; // skip both
+          } else {
+            newMemories.push(m1);
+            i++;
+          }
+        }
+      }
+
+      if (mergedCount > 0) {
+        this.writeJSONFileSync(this.memoriesPath, newMemories);
+      }
+
+      return mergedCount;
+    } finally {
+      release();
+    }
+  }
+
   // ── Cleanup ────────────────────────────────────────────────────────────
 
   async close(): Promise<void> {

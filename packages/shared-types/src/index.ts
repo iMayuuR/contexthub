@@ -130,3 +130,10 @@ export interface CodeGraph {
   nodes: CodeGraphNode[];
   edges: CodeGraphEdge[];
 }
+
+export interface GraphDiff {
+  addedNodes: CodeGraphNode[];
+  removedNodes: CodeGraphNode[];
+  addedEdges: CodeGraphEdge[];
+  removedEdges: CodeGraphEdge[];
+}

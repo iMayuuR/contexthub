@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { RepoParser } from '@contexthub/repo-parser';
-import { SecurityManager, DEFAULT_QUERY_LIMIT } from '@contexthub/core';
-import type { CodeGraph, CodeGraphNode, CodeGraphEdge, ParsedFile } from '@contexthub/shared-types';
+import { SecurityManager, DEFAULT_QUERY_LIMIT, loadConfig } from '@contexthub/core';
+import type { CodeGraph, CodeGraphNode, CodeGraphEdge, ParsedFile, GraphDiff } from '@contexthub/shared-types';
 
 export class CodeGraphManager {
   private repoPath: string;
@@ -11,6 +11,7 @@ export class CodeGraphManager {
   private graphDirPath: string;
   private graphPath: string;
   private metaPath: string;
+  private snapshotDirPath: string;
   private parser: RepoParser;
   private security: SecurityManager;
 
@@ -20,6 +21,7 @@ export class CodeGraphManager {
     this.graphDirPath = path.join(this.contexthubPath, 'graph');
     this.graphPath = path.join(this.graphDirPath, 'code-graph.json');
     this.metaPath = path.join(this.graphDirPath, 'index-meta.json');
+    this.snapshotDirPath = path.join(this.graphDirPath, 'snapshots');
     this.parser = new RepoParser(this.repoPath);
     this.security = new SecurityManager(this.repoPath);
 
@@ -27,6 +29,41 @@ export class CodeGraphManager {
     if (!fs.existsSync(this.graphDirPath)) {
       fs.mkdirSync(this.graphDirPath, { recursive: true });
       this.security.setSecurePermissions(this.graphDirPath, true);
+    }
+    if (!fs.existsSync(this.snapshotDirPath)) {
+      fs.mkdirSync(this.snapshotDirPath, { recursive: true });
+      this.security.setSecurePermissions(this.snapshotDirPath, true);
+    }
+  }
+
+  /**
+   * Helper to compute prefixed node ID and repository-relative path based on monorepo roots.
+   */
+  getNodeIdAndRelPath(filePath: string, roots: string[]): { id: string; relPath: string } {
+    const absPath = path.resolve(this.repoPath, filePath);
+    
+    // Find the best matching root
+    let bestRoot = '.';
+    let bestRootLen = -1;
+    for (const r of roots) {
+      const absRoot = path.resolve(this.repoPath, r);
+      if (absPath.startsWith(absRoot + path.sep) || absPath === absRoot) {
+        if (r.length > bestRootLen) {
+          bestRoot = r;
+          bestRootLen = r.length;
+        }
+      }
+    }
+    
+    const absRootPath = path.resolve(this.repoPath, bestRoot);
+    const relToRoot = path.relative(absRootPath, absPath).replace(/\\/g, '/');
+    const relToRepo = path.relative(this.repoPath, absPath).replace(/\\/g, '/');
+    
+    if (bestRoot === '.') {
+      return { id: relToRepo, relPath: relToRepo };
+    } else {
+      const prefix = `pkg:${path.basename(bestRoot)}`;
+      return { id: `${prefix}#${relToRoot}`, relPath: relToRepo };
     }
   }
 
@@ -36,7 +73,25 @@ export class CodeGraphManager {
    * Build a completely fresh code graph of the repository.
    */
   async buildCodeGraph(): Promise<CodeGraph> {
-    const parsedFiles = await this.parser.parseDirectory(this.repoPath);
+    const config = loadConfig(this.repoPath);
+    const roots = config.roots || ['.'];
+    
+    const parsedFiles: ParsedFile[] = [];
+    for (const r of roots) {
+      const rootDir = path.resolve(this.repoPath, r);
+      if (fs.existsSync(rootDir)) {
+        const pf = await this.parser.parseDirectory(rootDir);
+        parsedFiles.push(...pf);
+      }
+    }
+
+    // Deduplicate by path
+    const uniqueFiles = new Map<string, ParsedFile>();
+    for (const pf of parsedFiles) {
+      uniqueFiles.set(pf.path, pf);
+    }
+    const deduplicatedParsedFiles = Array.from(uniqueFiles.values());
+
     const graph: CodeGraph = {
       version: '1.0.0',
       updatedAt: Date.now(),
@@ -49,13 +104,13 @@ export class CodeGraphManager {
     const symbolNodesMap = new Map<string, CodeGraphNode>();
 
     // 1. Create all nodes (files and symbols)
-    for (const pf of parsedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+    for (const pf of deduplicatedParsedFiles) {
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
       parsedFilesMap.set(relPath, pf);
 
       // File node
       graph.nodes.push({
-        id: relPath,
+        id: fileNodeId,
         kind: 'file',
         path: relPath,
         lang: pf.language
@@ -63,7 +118,7 @@ export class CodeGraphManager {
 
       // Symbol nodes
       for (const sym of pf.symbols) {
-        const symId = `${relPath}#${sym.name}`;
+        const symId = `${fileNodeId}#${sym.name}`;
         const symNode: CodeGraphNode = {
           id: symId,
           kind: 'symbol',
@@ -75,7 +130,7 @@ export class CodeGraphManager {
 
         // Contains edge
         graph.edges.push({
-          from: relPath,
+          from: fileNodeId,
           to: symId,
           kind: 'contains'
         });
@@ -85,8 +140,8 @@ export class CodeGraphManager {
     // 2. Resolve imports and build import edges
     const possibleExtensions = ['', '.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java'];
     
-    for (const pf of parsedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+    for (const pf of deduplicatedParsedFiles) {
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
 
       for (const imp of pf.imports) {
         if (imp.source.startsWith('.') || imp.source.startsWith('/')) {
@@ -96,7 +151,7 @@ export class CodeGraphManager {
 
           for (const ext of possibleExtensions) {
             const fullPath = absoluteImportPath + ext;
-            const rel = path.relative(this.repoPath, fullPath);
+            const rel = path.relative(this.repoPath, fullPath).replace(/\\/g, '/');
             if (parsedFilesMap.has(rel)) {
               targetRelPath = rel;
               break;
@@ -104,19 +159,22 @@ export class CodeGraphManager {
           }
 
           if (targetRelPath) {
+            const targetAbsPath = path.resolve(this.repoPath, targetRelPath);
+            const { id: targetFileNodeId } = this.getNodeIdAndRelPath(targetAbsPath, roots);
+            
             // Add file-to-file import edge
             graph.edges.push({
-              from: relPath,
-              to: targetRelPath,
+              from: fileNodeId,
+              to: targetFileNodeId,
               kind: 'imports'
             });
 
             // Add symbol import edges if specified
             for (const name of imp.imported) {
-              const symId = `${targetRelPath}#${name}`;
+              const symId = `${targetFileNodeId}#${name}`;
               if (symbolNodesMap.has(symId)) {
                 graph.edges.push({
-                  from: relPath,
+                  from: fileNodeId,
                   to: symId,
                   kind: 'imports'
                 });
@@ -129,8 +187,8 @@ export class CodeGraphManager {
 
     // 3. Simple calls edge extraction (best-effort)
     // For each file, search for usages of other files' symbols
-    for (const pf of parsedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+    for (const pf of deduplicatedParsedFiles) {
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
       let content = '';
       try {
         content = fs.readFileSync(pf.path, 'utf8');
@@ -145,7 +203,7 @@ export class CodeGraphManager {
           const regex = new RegExp('\\b' + targetNode.name + '\\b');
           if (regex.test(content)) {
             graph.edges.push({
-              from: relPath,
+              from: fileNodeId,
               to: targetNode.id,
               kind: 'calls'
             });
@@ -169,20 +227,23 @@ export class CodeGraphManager {
       return this.buildCodeGraph();
     }
 
+    const config = loadConfig(this.repoPath);
+    const roots = config.roots || ['.'];
+
     const absChangedPaths = changedPaths.map(p => path.resolve(this.repoPath, p));
 
     // 1. Remove old nodes and edges for modified files
     for (const absPath of absChangedPaths) {
-      const relPath = path.relative(this.repoPath, absPath);
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(absPath, roots);
       
       // Filter out nodes
       graph.nodes = graph.nodes.filter(n => n.path !== relPath);
 
       // Filter out edges
       graph.edges = graph.edges.filter(e => {
-        const fromPath = e.from.split('#')[0];
-        const toPath = e.to.split('#')[0];
-        return fromPath !== relPath && toPath !== relPath;
+        const isFromFile = e.from === fileNodeId || e.from.startsWith(fileNodeId + '#');
+        const isToFile = e.to === fileNodeId || e.to.startsWith(fileNodeId + '#');
+        return !isFromFile && !isToFile;
       });
     }
 
@@ -220,12 +281,12 @@ export class CodeGraphManager {
     }
     // Update with new files
     for (const pf of updatedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
       parsedFilesMap.set(relPath, pf);
 
       // Add file node
       graph.nodes.push({
-        id: relPath,
+        id: fileNodeId,
         kind: 'file',
         path: relPath,
         lang: pf.language
@@ -233,7 +294,7 @@ export class CodeGraphManager {
 
       // Add symbols
       for (const sym of pf.symbols) {
-        const symId = `${relPath}#${sym.name}`;
+        const symId = `${fileNodeId}#${sym.name}`;
         const symNode: CodeGraphNode = {
           id: symId,
           kind: 'symbol',
@@ -245,7 +306,7 @@ export class CodeGraphManager {
 
         // Contains edge
         graph.edges.push({
-          from: relPath,
+          from: fileNodeId,
           to: symId,
           kind: 'contains'
         });
@@ -254,7 +315,7 @@ export class CodeGraphManager {
 
     // Resolve imports for updated files
     for (const pf of updatedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
 
       for (const imp of pf.imports) {
         if (imp.source.startsWith('.') || imp.source.startsWith('/')) {
@@ -263,7 +324,7 @@ export class CodeGraphManager {
 
           for (const ext of possibleExtensions) {
             const fullPath = absoluteImportPath + ext;
-            const rel = path.relative(this.repoPath, fullPath);
+            const rel = path.relative(this.repoPath, fullPath).replace(/\\/g, '/');
             if (parsedFilesMap.has(rel)) {
               targetRelPath = rel;
               break;
@@ -271,17 +332,20 @@ export class CodeGraphManager {
           }
 
           if (targetRelPath) {
+            const targetAbsPath = path.resolve(this.repoPath, targetRelPath);
+            const { id: targetFileNodeId } = this.getNodeIdAndRelPath(targetAbsPath, roots);
+
             graph.edges.push({
-              from: relPath,
-              to: targetRelPath,
+              from: fileNodeId,
+              to: targetFileNodeId,
               kind: 'imports'
             });
 
             for (const name of imp.imported) {
-              const symId = `${targetRelPath}#${name}`;
+              const symId = `${targetFileNodeId}#${name}`;
               if (symbolNodesMap.has(symId)) {
                 graph.edges.push({
-                  from: relPath,
+                  from: fileNodeId,
                   to: symId,
                   kind: 'imports'
                 });
@@ -294,7 +358,7 @@ export class CodeGraphManager {
 
     // Add calls from updated files to all symbols
     for (const pf of updatedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
       let content = '';
       try {
         content = fs.readFileSync(pf.path, 'utf8');
@@ -307,7 +371,7 @@ export class CodeGraphManager {
           const regex = new RegExp('\\b' + targetNode.name + '\\b');
           if (regex.test(content)) {
             graph.edges.push({
-              from: relPath,
+              from: fileNodeId,
               to: targetNode.id,
               kind: 'calls'
             });
@@ -318,9 +382,9 @@ export class CodeGraphManager {
 
     // Also, search all other files for calls to newly added symbols in updated files
     for (const pf of updatedFiles) {
-      const relPath = path.relative(this.repoPath, pf.path);
+      const { id: fileNodeId, relPath } = this.getNodeIdAndRelPath(pf.path, roots);
       for (const sym of pf.symbols) {
-        const symId = `${relPath}#${sym.name}`;
+        const symId = `${fileNodeId}#${sym.name}`;
 
         // Scan other files on disk for calls to this new symbol
         for (const node of graph.nodes) {
@@ -331,7 +395,7 @@ export class CodeGraphManager {
               const regex = new RegExp('\\b' + sym.name + '\\b');
               if (regex.test(otherContent)) {
                 graph.edges.push({
-                  from: node.path,
+                  from: node.id,
                   to: symId,
                   kind: 'calls'
                 });
@@ -664,6 +728,76 @@ export class CodeGraphManager {
     } catch (e) {
       try { fs.unlinkSync(metaTmpPath); } catch {}
     }
+  }
+
+  // ─── Snapshots & Diffing ────────────────────────────────────────────────
+
+  /**
+   * Create a snapshot of the current code graph and return its ID.
+   * Auto-cleans up keeping only the 5 most recent snapshots.
+   */
+  async createGraphSnapshot(): Promise<string> {
+    if (!fs.existsSync(this.graphPath)) {
+      return '';
+    }
+    const snapshotId = `snapshot-${Date.now()}`;
+    const targetPath = path.join(this.snapshotDirPath, `${snapshotId}.json`);
+    
+    // Copy the current graph
+    fs.copyFileSync(this.graphPath, targetPath);
+    this.security.setSecurePermissions(targetPath);
+
+    // Cleanup old snapshots
+    try {
+      const files = fs.readdirSync(this.snapshotDirPath);
+      const snapshots = files
+        .filter(f => f.startsWith('snapshot-') && f.endsWith('.json'))
+        .map(f => ({ name: f, time: fs.statSync(path.join(this.snapshotDirPath, f)).mtimeMs }))
+        .sort((a, b) => b.time - a.time);
+
+      if (snapshots.length > 5) {
+        for (const s of snapshots.slice(5)) {
+          fs.unlinkSync(path.join(this.snapshotDirPath, s.name));
+        }
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    return snapshotId;
+  }
+
+  /**
+   * Load a specific graph snapshot.
+   */
+  async loadGraphSnapshot(snapshotId: string): Promise<CodeGraph | null> {
+    const targetPath = path.join(this.snapshotDirPath, `${snapshotId}.json`);
+    if (!fs.existsSync(targetPath)) return null;
+    try {
+      const content = fs.readFileSync(targetPath, 'utf8');
+      const decrypted = this.security.decrypt(content);
+      return JSON.parse(decrypted) as CodeGraph;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Diff two CodeGraphs and return the delta.
+   */
+  diffCodeGraph(oldGraph: CodeGraph, newGraph: CodeGraph): GraphDiff {
+    const oldNodesMap = new Map(oldGraph.nodes.map(n => [n.id, n]));
+    const newNodesMap = new Map(newGraph.nodes.map(n => [n.id, n]));
+    const oldEdgesSet = new Set(oldGraph.edges.map(e => `${e.from}::${e.to}::${e.kind}`));
+    const newEdgesSet = new Set(newGraph.edges.map(e => `${e.from}::${e.to}::${e.kind}`));
+
+    const addedNodes = newGraph.nodes.filter(n => !oldNodesMap.has(n.id));
+    const removedNodes = oldGraph.nodes.filter(n => !newNodesMap.has(n.id));
+    
+    const addedEdges = newGraph.edges.filter(e => !oldEdgesSet.has(`${e.from}::${e.to}::${e.kind}`));
+    const removedEdges = oldGraph.edges.filter(e => !newEdgesSet.has(`${e.from}::${e.to}::${e.kind}`));
+
+    return { addedNodes, removedNodes, addedEdges, removedEdges };
   }
 }
 

@@ -14,6 +14,14 @@ import { exportGraphCommand } from './commands/export-graph';
 import { dashboardCommand } from './commands/dashboard';
 import { ingestDocsCommand } from './commands/ingest-docs';
 import { reportCommand } from './commands/report';
+import { contextCommand } from './commands/context';
+import { doctorCommand } from './commands/doctor';
+import { statusCommand } from './commands/status';
+import { benchmarkCommand } from './commands/benchmark';
+import { compactCommand } from './commands/compact';
+import { ciCommand } from './commands/ci';
+import { blastRadiusCommand } from './commands/blast-radius';
+import { exportMemoriesCommand } from './commands/export-memories';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -131,6 +139,40 @@ program
     await queryCommand(queryText, options);
   });
 
+// Context bundle generator
+program
+  .command('context')
+  .description('Generate an intelligent context bundle for agents')
+  .option('--query <text>', 'Optional semantic query to filter memories/code')
+  .option('--path <file>', 'Optional file path to center the bundle on')
+  .action(async (options) => {
+    await contextCommand(options);
+  });
+
+// Doctor
+program
+  .command('doctor')
+  .description('Run diagnostics to ensure ContextHub is working properly')
+  .action(async () => {
+    await doctorCommand();
+  });
+
+// Status
+program
+  .command('status')
+  .description('View ContextHub memory and graph status')
+  .action(async () => {
+    await statusCommand();
+  });
+
+// Benchmark
+program
+  .command('benchmark')
+  .description('Run performance benchmarks for ContextHub')
+  .action(async () => {
+    await benchmarkCommand();
+  });
+
 // Global error handler — sanitize output
 process.on('uncaughtException', (err) => {
   const safeMsg = String(err?.message || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
@@ -159,6 +201,41 @@ program
   .option('--stdout', 'Print report to stdout instead of writing to file')
   .action(async (options) => {
     await reportCommand(options);
+  });
+
+// Compact and decay memories
+program
+  .command('compact')
+  .description('Compact adjacent prompt/response memories and optionally archive old memories')
+  .option('--archive-age <days>', 'Optional maximum age of memories in days to archive')
+  .action(async (options) => {
+    await compactCommand(options);
+  });
+
+// CI non-interactive verification & update
+program
+  .command('ci')
+  .description('Run non-interactive CI diagnostics and update knowledge graph')
+  .action(async () => {
+    await ciCommand();
+  });
+
+// PR Blast-Radius reporter
+program
+  .command('blast-radius <files...>')
+  .description('Compute the transitive blast radius of modified files (security-safe)')
+  .action(async (files: string[]) => {
+    await blastRadiusCommand(files);
+  });
+
+// Export memories command
+program
+  .command('export-memories')
+  .description('Export all memories to an encrypted portable bundle')
+  .option('--out <path>', 'Output file path (default: bundle.chub)', 'bundle.chub')
+  .option('--passphrase <phrase>', 'Passphrase to encrypt the exported bundle')
+  .action(async (options) => {
+    await exportMemoriesCommand(options);
   });
 
 program.parse();
