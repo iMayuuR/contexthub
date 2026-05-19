@@ -7,14 +7,11 @@
 ### One-command setup (recommended)
 
 ```bash
-# For any Node.js project
+# Standard scope:
 npx @contexthub/cli setup
 
-# Or for local development
-git clone https://github.com/iMayuuR/contexthub.git
-cd contexthub
-npm install && npm run build
-node packages/cli/dist/index.js setup
+# OR custom scope:
+npx @imayuur/contexthub setup
 ```
 
 ### After setup:

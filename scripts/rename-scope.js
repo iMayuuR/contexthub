@@ -44,9 +44,11 @@ for (const dir of packageDirs) {
     const oldName = pkg.name;
     const baseName = oldName.replace('@contexthub/', '');
     
-    // We map @contexthub/core -> @imayuur/contexthub-core
-    // This avoids conflicts with generic package names on public npm
-    const newName = `${targetScope}/contexthub-${baseName}`;
+    // Map '@contexthub/cli' directly to '@scope/contexthub' so they can run: npx @scope/contexthub
+    const newName = baseName === 'cli' 
+      ? `${targetScope}/contexthub` 
+      : `${targetScope}/contexthub-${baseName}`;
+      
     nameMap[oldName] = newName;
   }
 }
@@ -108,4 +110,4 @@ console.log(`\n👉 Next Steps to publish:`);
 console.log(`  1. Run: npm login`);
 console.log(`  2. Run: npm run publish:packages`);
 console.log(`\n👉 Next Steps to install in projects:`);
-console.log(`  npx ${targetScope}/contexthub-cli setup\n`);
+console.log(`  npx ${targetScope}/contexthub setup\n`);

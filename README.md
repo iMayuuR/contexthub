@@ -19,16 +19,18 @@ ContextHub is a **local-first, privacy-focused AI memory and context orchestrati
 
 ### Key Features
 
+- **⚡ Token & Cost Optimizer** — Saves **70%-90% context window** and API costs via smart session compression and dynamic RRF filtering
 - **🧠 Persistent Memory** — Saves conversations, decisions, and learnings across sessions
-- **🔍 Semantic Search** — Natural language queries across all your memories
-- **📊 Code Intelligence** — Analyzes repo structure, dependencies, and architecture
-- **🔌 MCP-Compatible** — Works with Claude Code, Cursor, and any MCP client
-- **🔒 Encrypted Storage** — AES-256-GCM encryption at rest for all data
-- **🛡️ Auto-Redaction** — API keys, tokens, and passwords are automatically detected and redacted
-- **🌐 Local Dashboard** — View and explore memories visually
-- **📚 Docs Ingest** — Ingest markdown docs for context
-- **📈 Learns Over Time** — Improves relevance through usage patterns
-- **🌐 Local-First** — All data stays on your machine, never leaves your repo
+- **🔍 Semantic Search** — Natural language queries across all your memories with offline-verified local bigram embeddings
+- **📊 Code Intelligence** — Analyzes repo structure, dependencies, and transitive God-nodes
+- **🔌 MCP-Compatible** — Works natively with Cursor, Claude Code, Windsurf, and any stdio MCP client
+- **🔒 Encrypted Storage** — Bank-grade AES-256-GCM encryption at rest with per-repo unique salt
+- **🛡️ Auto-Redaction** — API keys, tokens, private keys, and passwords detected and redacted before write
+- **🌐 Local Dashboard** — Interactive web dashboard to visually explore memory timelines and codebase topology
+- **🌿 Git Integration** — Automatically maps memories to branches, authors, commit hashes, and file diffs
+- **📂 Multi-Root Support** — Standard multi-root workspace configs limit file indexing strictly to active folders
+- **📚 Docs Ingest** — Ingest markdown directories and PDFs directly into semantic memory
+- **🌐 Local-First** — Zero telemetry and zero external network calls. Your code and memories never leave your workstation
 
 ---
 
@@ -37,18 +39,11 @@ ContextHub is a **local-first, privacy-focused AI memory and context orchestrati
 ### One-Command Installation
 
 ```bash
-# Navigate to your project
-cd your-project
-
-# Initialize ContextHub (starts MCP server + encrypted storage)
+# Standard scope:
 npx @contexthub/cli setup
 
-# Or for local development
-git clone https://github.com/iMayuuR/contexthub.git
-cd contexthub
-npm install
-npm run build
-node packages/cli/dist/index.js setup
+# OR custom scope:
+npx @imayuur/contexthub setup
 ```
 
 That's it! ContextHub will:

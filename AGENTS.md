@@ -47,4 +47,4 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Full policy text | `get_agent_policy` |
 
 
-Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using `npx @contexthub/cli start`.
+Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using `npx @contexthub/cli start` (or `npx @imayuur/contexthub-cli start`).

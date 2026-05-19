@@ -63,6 +63,13 @@ node packages/cli/dist/index.js start --port 3000
 
 # Stop MCP server cleanly
 node packages/cli/dist/index.js stop
+
+# --- Publishing to NPM ---
+# Rename packages scope to your custom org/user (e.g. @imayuur)
+npm run rename-scope @imayuur
+
+# Publish all packages to npm in order
+npm run publish:packages
 ```
 
 ## Key Components

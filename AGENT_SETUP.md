@@ -18,10 +18,14 @@ Your objective is to:
 
 ## 🛠️ Step 1: Automated Installation & Initialization
 
-If ContextHub is not yet running in this workspace, execute the following non-interactive command to initialize and spin up the MCP server:
+If ContextHub is not yet running in this workspace, execute the following non-interactive command to initialize and spin up the MCP server (use your personal npm scope `@imayuur/contexthub` if installed under your own account):
 
 ```bash
+# Standard scope:
 npx -y @contexthub/cli setup
+
+# OR custom scope (highly recommended):
+npx -y @imayuur/contexthub setup
 ```
 
 ### What this command does:
@@ -63,7 +67,7 @@ Add ContextHub as an MCP server in your configuration.
   "mcpServers": {
     "contexthub": {
       "command": "npx",
-      "args": ["@contexthub/cli", "start"],
+      "args": ["@contexthub/cli", "start"], // Use "@imayuur/contexthub" if using custom scope
       "env": {
         "CONTEXTHUB_TOKEN": "<your-auth-token>"
       }
@@ -75,7 +79,7 @@ Add ContextHub as an MCP server in your configuration.
 ### For Cursor (`project settings` or global MCP settings):
 - **Name:** `contexthub`
 - **Type:** `command`
-- **Command:** `npx @contexthub/cli start`
+- **Command:** `npx @contexthub/cli start` *(or `npx @imayuur/contexthub start`)*
 - **Environment Variables:** `CONTEXTHUB_TOKEN=<your-auth-token>`
 
 ---
@@ -108,5 +112,5 @@ As an agentic AI, you **MUST** strictly adhere to the following security protoco
 5. **No Shell Profile Modifying Hooks:** Do not write shell startup hooks or traps to the user's terminal profiles (`.zshrc`, `.bashrc`). ContextHub operates strictly via the clean background server managed by `contexthub stop` and `contexthub start`.
 6. **Graceful Daemon Shutdown:** To stop the server at the end of operations, simply run:
    ```bash
-   npx @contexthub/cli stop
+   npx @contexthub/cli stop # or npx @imayuur/contexthub stop
    ```
