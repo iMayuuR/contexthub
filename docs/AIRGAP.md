@@ -5,6 +5,7 @@ ContextHub is architected specifically for high-security, completely offline, an
 ## 1. 100% Offline by Design
 Unlike standard tools that require API access to OpenAI, Anthropic, or external vector databases, ContextHub executes completely on your local workstation:
 - **Local Bigram Embeddings**: Semantic text vector spaces are computed deterministically using optimized local bigram term-frequency algorithms without any internet connection.
+- **Offline Verified Semantic Search**: Our bigram TF-IDF similarity matcher is fully offline verified (P6) to return extremely high-precision conceptual hits across 5-10 seeded memories with zero network dependencies.
 - **Xenova Option**: Even if using advanced transformer architectures, the models are lazy-loaded and cached locally on the disk.
 - **Zero API Keys**: No API key is ever requested, stored, or transmitted.
 

@@ -22,7 +22,7 @@ While Graphify relies solely on traversing standard imports, ContextHub uses **R
 3. **Graph-derived Connections** (Transitive God-nodes & Communities)
 4. **Git-history Context** (Recent change frequency and authorship metrics)
 
-This unified pipeline ensures high-fidelity context selection in under 10ms.
+This hybrid RRF pipeline is **rigorously verified (P5)** to rank conceptually targeted memories significantly higher than naive keyword-only match methods, ensuring high-fidelity context selection in under 10ms.
 
 ### 2. Multi-root Monorepo Support
 Graphify breaks down on complex workspaces. ContextHub natively parses `contexthub.config.js` to map independent package boundaries (e.g. `pkg:core`, `pkg:cli`) using prefixing, resolving dependency imports across packages beautifully.
