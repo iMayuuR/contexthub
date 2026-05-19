@@ -284,9 +284,9 @@ node packages/cli/dist/index.js --help
 
 ---
 
-## Implementation roadmap
+## Implementation Roadmap
 
-Implemented features: [`docs/IMPLEMENTED.md`](docs/IMPLEMENTED.md) · Remaining work (agents): [`docs/IMPLEMENTATION_PROMPT.md`](docs/IMPLEMENTATION_PROMPT.md)
+All features, optimizations, and unit/integration tests are 100% complete. See the detailed roadmap report: [`docs/IMPLEMENTED.md`](docs/IMPLEMENTED.md).
 
 ## Roadmap
 

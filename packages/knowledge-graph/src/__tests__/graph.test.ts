@@ -70,4 +70,65 @@ describe('CodeGraphManager', () => {
     // Directed graph, d doesn't import a
     assert.deepStrictEqual(pathIds, null);
   });
+
+  test('God-node fixture test with high-degree hubs', async () => {
+    const tempDir = path.join(repoPath, 'temp-god-node-test');
+    const contexthubDir = path.join(tempDir, '.contexthub');
+    fs.mkdirSync(contexthubDir, { recursive: true });
+
+    // Generate ~10,000 nodes and edges
+    const nodes: any[] = [];
+    const edges: any[] = [];
+
+    // Add 3 hub files
+    const hubs = ['src/hub_a.ts', 'src/hub_b.ts', 'src/hub_c.ts'];
+    hubs.forEach(h => {
+      nodes.push({ id: h, kind: 'file', path: h });
+    });
+
+    // Add 3,000 other files and connect them to hubs
+    for (let i = 0; i < 3000; i++) {
+      const fileId = `src/file_${i}.ts`;
+      nodes.push({ id: fileId, kind: 'file', path: fileId });
+
+      if (i < 100) {
+        // First 100 files import hub_a
+        edges.push({ from: fileId, to: 'src/hub_a.ts', kind: 'imports' });
+      } else if (i < 200) {
+        // Next 100 files import hub_b
+        edges.push({ from: fileId, to: 'src/hub_b.ts', kind: 'imports' });
+      } else if (i < 300) {
+        // Next 100 files import hub_c
+        edges.push({ from: fileId, to: 'src/hub_c.ts', kind: 'imports' });
+      }
+    }
+
+    const hubGraph: CodeGraph = {
+      version: '1.0.0',
+      updatedAt: Date.now(),
+      nodes,
+      edges
+    };
+
+    // Save to packages/knowledge-graph/fixtures/hub-graph.json
+    const fixturesDir = path.resolve(__dirname, '../../fixtures');
+    fs.mkdirSync(fixturesDir, { recursive: true });
+    const fixturePath = path.join(fixturesDir, 'hub-graph.json');
+    fs.writeFileSync(fixturePath, JSON.stringify(hubGraph, null, 2));
+
+    // Also write to the temp directory's code-graph location
+    const tempManager = new CodeGraphManager(tempDir);
+    await tempManager.saveGraph(hubGraph);
+
+    const godNodes = await tempManager.getGodNodes(10);
+    
+    // Assert we get >= 3 hubs returned in the top scored nodes
+    const topIds = godNodes.map(n => n.id);
+    assert.ok(topIds.includes('src/hub_a.ts'), 'hub_a should be detected');
+    assert.ok(topIds.includes('src/hub_b.ts'), 'hub_b should be detected');
+    assert.ok(topIds.includes('src/hub_c.ts'), 'hub_c should be detected');
+
+    // Cleanup
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
 });

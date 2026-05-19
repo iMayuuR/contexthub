@@ -147,8 +147,9 @@ Protocol: `ensure_session` → `get_project_context` → work → `record_turn` 
 | Core product (MCP + CLI + graph + memory) | **Done** |
 | Phase 3 (PDF, sync design, 15+ langs) | **Done** |
 | Phase 5 (RRF, bundle, doctor, CI, docs) | **Done** |
-| **Remaining** | Tests/polish only — see [`IMPLEMENTATION_PROMPT.md`](./IMPLEMENTATION_PROMPT.md) P1–P7 |
+| Watch Multi-root, RRF, Embeddings Tests | **Done** |
+| **Status** | **100% Complete & Verified** |
 
 ---
 
-*Roadmap implementation complete; pending = verification + watch multi-root + doc hygiene.*
+*Roadmap implementation is 100% complete and fully verified.*

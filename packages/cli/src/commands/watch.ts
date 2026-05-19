@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SecurityManager, ContexthubIgnore } from '@contexthub/core';
+import { SecurityManager, ContexthubIgnore, loadConfig } from '@contexthub/core';
 import { CodeGraphManager } from '@contexthub/knowledge-graph';
 import { VectorEngine } from '@contexthub/vector-engine';
 import { RepoParser } from '@contexthub/repo-parser';
@@ -16,6 +16,8 @@ export async function watchCommand(targetPath: string = '.', options: WatchOptio
   const currentDir = process.cwd();
   const security = new SecurityManager(currentDir);
   const ignore = new ContexthubIgnore(currentDir);
+  const config = loadConfig(currentDir);
+  const roots = config.roots ?? ['.'];
 
   // Validate and resolve target path safely
   let resolvedTarget: string;
@@ -26,7 +28,7 @@ export async function watchCommand(targetPath: string = '.', options: WatchOptio
     process.exit(1);
   }
 
-  const debounceMs = Number(options.debounce || '3000');
+  const debounceMs = Number(options.debounce || config.watch?.debounceMs || '3000');
   const noEmbeddings = !!options.noEmbeddings;
   const quiet = !!options.quiet;
 
@@ -154,6 +156,16 @@ export async function watchCommand(targetPath: string = '.', options: WatchOptio
 
       const relPath = path.relative(currentDir, absPath);
       
+      // Check if file is within one of the configured roots
+      const isInRoots = roots.some(root => {
+        const resolvedRoot = path.resolve(currentDir, root);
+        const relative = path.relative(resolvedRoot, absPath);
+        return !relative.startsWith('..') && !path.isAbsolute(relative);
+      });
+      if (!isInRoots) {
+        return;
+      }
+
       // Apply contexthub ignore rules
       if (ignore.ignores(relPath)) {
         return;
