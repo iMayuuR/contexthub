@@ -37,12 +37,19 @@ run('npm run build');
 
 for (const pkg of PUBLISH_ORDER) {
   const dir = path.join(root, 'packages', pkg);
-  console.log(`\n━━━ Publishing @contexthub/${pkg === 'cli' ? 'cli' : pkg} ━━━`);
+  const pkgJsonPath = path.join(dir, 'package.json');
+  let pkgName = `@contexthub/${pkg}`;
+  try {
+    const pkgJson = require(pkgJsonPath);
+    pkgName = pkgJson.name;
+  } catch (e) {}
+
+  console.log(`\n━━━ Publishing ${pkgName} ━━━`);
   try {
     run('npm publish --access public', dir);
   } catch (err) {
-    console.log(`\n⚠️  Skipped @contexthub/${pkg} (likely already published or unpublished)`);
+    console.log(`\n⚠️  Skipped ${pkgName} (likely already published or unpublished)`);
   }
 }
 
-console.log('\n✅ All packages published. Test with: npx @contexthub/cli setup');
+console.log('\n✅ All packages published successfully!');

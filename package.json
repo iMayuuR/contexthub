@@ -8,7 +8,8 @@
     "dev": "npm run build && npm run dev --workspace=packages/core --workspace=packages/cli",
     "build": "npm run build --workspace=packages/shared-types && npm run build --workspace=packages/core && npm run build --workspace=packages/repo-parser && npm run build --workspace=packages/vector-engine && npm run build --workspace=packages/knowledge-graph && npm run build --workspace=packages/git-integration && npm run build --workspace=packages/docs-ingest && npm run build --workspace=packages/plugin-pdf && npm run build --workspace=packages/skills && npm run build --workspace=packages/mcp-server && npm run build --workspace=packages/cli && npm run build --workspace=packages/memory-engine && npm run build --workspace=packages/context-injector && npm run build --workspace=packages/agent-connectors",
     "test": "npm run test --workspaces --if-present",
-    "publish:packages": "node scripts/publish-packages.js"
+    "publish:packages": "node scripts/publish-packages.js",
+    "rename-scope": "node scripts/rename-scope.js"
   },
   "devDependencies": {
     "@types/node": "^25.7.0",
