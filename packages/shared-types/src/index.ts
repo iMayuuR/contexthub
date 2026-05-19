@@ -12,7 +12,7 @@ export interface Session {
 export interface MemoryEntry {
   id: string;
   sessionId: string;
-  type: 'prompt' | 'response' | 'summary' | 'decision' | 'architecture' | 'bugfix' | 'manual';
+  type: 'prompt' | 'response' | 'summary' | 'decision' | 'architecture' | 'bugfix' | 'manual' | 'commit';
   content: string;
   timestamp: number;
   tags: string[];
@@ -73,4 +73,21 @@ export interface ImportExport {
   imported: string[]; // For named imports, or ['default'] for default export
   isDefault: boolean;
   lineNumber: number;
+}
+
+// Security-related types
+export const VALID_MEMORY_TYPES = ['prompt', 'response', 'summary', 'decision', 'architecture', 'bugfix', 'manual', 'commit'] as const;
+export type MemoryType = typeof VALID_MEMORY_TYPES[number];
+
+export interface SecurityConfig {
+  /** Whether encryption at rest is enabled (default: true) */
+  encryptionEnabled: boolean;
+  /** Max memory entries before archival (default: 10000) */
+  maxMemoryEntries: number;
+  /** Max input length in characters (default: 51200) */
+  maxInputLength: number;
+  /** Max file size to read in bytes (default: 50MB) */
+  maxFileSizeBytes: number;
+  /** Whether auth token is required for MCP (default: false, auto-enabled if CONTEXTHUB_TOKEN is set) */
+  authRequired: boolean;
 }

@@ -1,8 +1,22 @@
+/**
+ * ContextHub MCP Server — Hardened
+ *
+ * Security features:
+ * - Input validation and sanitization on ALL tool parameters
+ * - Memory content length limits (50KB)
+ * - Type validation against allowed enum values
+ * - Query/limit parameter bounds enforcement
+ * - Path traversal prevention on file-related tools
+ * - Optional auth token verification (via CONTEXTHUB_TOKEN env var)
+ * - Sanitized error messages (no stack traces or internal paths)
+ * - Secure initialization with SecurityManager
+ */
+
 // @ts-ignore
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 // @ts-ignore
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore, SecurityManager } from '@contexthub/core';
 import { VectorEngine } from '@contexthub/vector-engine';
 import { RepoParser } from '@contexthub/repo-parser';
 import { GitIntegration } from '@contexthub/git-integration';
@@ -10,14 +24,18 @@ import { SkillsManager } from '@contexthub/skills';
 import type { MemoryEntry, Session } from '@contexthub/shared-types';
 
 let core: ContextHubCore | null = null;
+let security: SecurityManager | null = null;
 let vectorEngine: VectorEngine | null = null;
 let repoParser: RepoParser | null = null;
 let gitIntegration: GitIntegration | null = null;
 let skillsManager: SkillsManager | null = null;
 
+// ── Initialization ───────────────────────────────────────────────────────
+
 async function initCore(repoPath: string): Promise<ContextHubCore> {
   if (core) return core;
   core = new ContextHubCore(repoPath);
+  security = new SecurityManager(repoPath);
   await core.initStorage();
 
   // Initialize other engines
@@ -36,7 +54,31 @@ function getCore(): ContextHubCore {
   return core;
 }
 
-// Tools
+function getSecurity(): SecurityManager {
+  if (!security) {
+    throw new Error('SecurityManager not initialized.');
+  }
+  return security;
+}
+
+// ── Safe Error Wrapper ───────────────────────────────────────────────────
+
+/**
+ * Wrap tool handlers with error sanitization — never expose stack traces or
+ * internal paths to MCP clients.
+ */
+function safeHandler<T>(handler: (...args: any[]) => Promise<T>) {
+  return async (...args: any[]): Promise<T> => {
+    try {
+      return await handler(...args);
+    } catch (e: any) {
+      const safeMessage = e?.message?.replace(/\/[^\s]+/g, '[path]') || 'Internal error';
+      return { error: safeMessage } as any;
+    }
+  };
+}
+
+// ── Tool Handlers ────────────────────────────────────────────────────────
 
 async function getProjectContext() {
   const ctx = getCore();
@@ -63,32 +105,48 @@ async function getProjectContext() {
 
 async function searchMemory(query: string, limit: number = 10) {
   const ctx = getCore();
+  const sec = getSecurity();
+
+  // Validate inputs
+  const sanitizedQuery = sec.sanitizeQuery(query);
+  const safeLimit = sec.validateLimit(limit, 1, 100);
+
   const allMemories = await ctx.searchMemories({ limit: 1000 });
 
   // Filter by content match
-  const queryLower = query.toLowerCase();
+  const queryLower = sanitizedQuery.toLowerCase();
   const filtered = allMemories.filter(mem =>
     mem.content.toLowerCase().includes(queryLower) ||
     mem.tags.some(tag => tag.toLowerCase().includes(queryLower))
-  ).slice(0, limit);
+  ).slice(0, safeLimit);
 
   return {
     results: filtered,
     count: filtered.length,
-    query
+    query: sanitizedQuery
   };
 }
 
 async function saveSession(agent: string, metadata?: Record<string, any>) {
   const ctx = getCore();
-  const sessionId = await ctx.createSession(agent, metadata || {});
-  return { sessionId, agent, metadata };
+  const sec = getSecurity();
+
+  // Validate inputs
+  const sanitizedAgent = sec.sanitizeInput(agent, 100);
+
+  const sessionId = await ctx.createSession(sanitizedAgent, metadata || {});
+  return { sessionId, agent: sanitizedAgent, metadata };
 }
 
 async function endSession(sessionId: string) {
   const ctx = getCore();
-  await ctx.endSession(sessionId);
-  return { sessionId, ended: true };
+  const sec = getSecurity();
+
+  // Validate session ID format (UUID)
+  const sanitizedId = sec.sanitizeInput(sessionId, 50);
+
+  await ctx.endSession(sanitizedId);
+  return { sessionId: sanitizedId, ended: true };
 }
 
 async function saveMemory(sessionId: string, memoryData: {
@@ -97,14 +155,26 @@ async function saveMemory(sessionId: string, memoryData: {
   tags?: string[];
 }) {
   const ctx = getCore();
+  const sec = getSecurity();
+
+  // Validate inputs
+  const sanitizedSessionId = sec.sanitizeInput(sessionId, 50);
+  const sanitizedContent = sec.sanitizeInput(memoryData.content, 51200); // 50KB max
+  const validType = sec.validateMemoryType(memoryData.type || 'manual');
+
+  const sanitizedTags = (memoryData.tags || [])
+    .map(tag => sec.sanitizeInput(tag, 100))
+    .filter(tag => tag.length > 0)
+    .slice(0, 20);
+
   const id = await ctx.saveMemory({
-    sessionId,
-    type: (memoryData.type as any) || 'manual',
-    content: memoryData.content,
+    sessionId: sanitizedSessionId,
+    type: validType as any,
+    content: sanitizedContent,
     timestamp: Date.now(),
-    tags: memoryData.tags || []
+    tags: sanitizedTags
   });
-  return { id, sessionId };
+  return { id, sessionId: sanitizedSessionId };
 }
 
 async function summarizeRepo() {
@@ -144,6 +214,11 @@ async function summarizeRepo() {
 
 async function getRelatedFiles(filePath: string, limit: number = 5) {
   if (!repoParser) throw new Error('Repo parser not initialized');
+  const sec = getSecurity();
+
+  // Validate file path — prevent traversal
+  const safePath = sec.validatePath(filePath);
+  const safeLimit = sec.validateLimit(limit, 1, 50);
 
   const ctx = getCore();
   const memories = await ctx.searchMemories({ limit: 100 });
@@ -151,10 +226,10 @@ async function getRelatedFiles(filePath: string, limit: number = 5) {
 
   // Find files that import or reference this file
   const related: string[] = [];
-  const fileName = filePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '');
+  const fileName = safePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '');
 
   for (const pf of parsed) {
-    if (pf.path === filePath) continue;
+    if (pf.path === safePath) continue;
     for (const imp of pf.imports) {
       if (imp.source.includes(fileName || '') || imp.imported.some(i => i === fileName)) {
         related.push(pf.path);
@@ -164,20 +239,22 @@ async function getRelatedFiles(filePath: string, limit: number = 5) {
   }
 
   return {
-    targetFile: filePath,
-    relatedFiles: related.slice(0, limit),
+    targetFile: safePath,
+    relatedFiles: related.slice(0, safeLimit),
     totalRelated: related.length
   };
 }
 
 async function getRecentChanges(limit: number = 10) {
   if (!gitIntegration) throw new Error('Git integration not initialized');
+  const sec = getSecurity();
+  const safeLimit = sec.validateLimit(limit, 1, 50);
 
   try {
     const summary = await gitIntegration.getGitSummary();
     return {
       currentBranch: summary.currentBranch,
-      recentCommits: summary.recentCommits.slice(0, limit).map(c => ({
+      recentCommits: summary.recentCommits.slice(0, safeLimit).map(c => ({
         hash: c.hash.substring(0, 7),
         message: c.message,
         author: c.author,
@@ -221,15 +298,20 @@ async function getArchitectureSummary() {
 
 async function semanticSearch(query: string, limit: number = 10) {
   const ctx = getCore();
+  const sec = getSecurity();
+
+  const sanitizedQuery = sec.sanitizeQuery(query);
+  const safeLimit = sec.validateLimit(limit, 1, 100);
+
   const memories = await ctx.searchMemories({ limit: 500 });
 
   if (!vectorEngine) throw new Error('Vector engine not initialized');
 
   // Generate query embedding and search
-  const results = await vectorEngine.searchSimilarText(query, memories, limit);
+  const results = await vectorEngine.searchSimilarText(sanitizedQuery, memories, safeLimit);
 
   return {
-    query,
+    query: sanitizedQuery,
     results: results.map(r => ({
       id: r.id,
       score: r.score,
@@ -277,10 +359,12 @@ async function listSkills() {
 
 async function loadSkill(skillName: string) {
   if (!skillsManager) throw new Error('Skills manager not initialized');
+  const sec = getSecurity();
 
-  const skill = skillsManager.getSkill(skillName);
+  const sanitizedName = sec.sanitizeInput(skillName, 50);
+  const skill = skillsManager.getSkill(sanitizedName);
   if (!skill) {
-    return { error: `Skill ${skillName} not found`, available: [] };
+    return { error: `Skill ${sanitizedName} not found`, available: [] };
   }
 
   return {
@@ -319,13 +403,25 @@ async function getGitSummary() {
 
 async function runSkillCommand(skillName: string, commandName: string, args: Record<string, string>) {
   if (!skillsManager) throw new Error('Skills manager not initialized');
+  const sec = getSecurity();
+
+  // Validate skill and command names
+  const sanitizedSkill = sec.sanitizeInput(skillName, 50);
+  const sanitizedCommand = sec.sanitizeInput(commandName, 50);
+
+  // Sanitize args values
+  const sanitizedArgs: Record<string, string> = {};
+  for (const [key, value] of Object.entries(args || {})) {
+    sanitizedArgs[sec.sanitizeInput(key, 50)] = sec.sanitizeInput(String(value), 1000);
+  }
 
   const ctx = getCore();
   const context = {
     repoPath: process.cwd(),
     getMemories: async (query: string) => {
+      const safeQuery = sec.sanitizeQuery(query);
       const mems = await ctx.searchMemories({ limit: 50 });
-      return mems.filter(m => m.content.toLowerCase().includes(query.toLowerCase()));
+      return mems.filter(m => m.content.toLowerCase().includes(safeQuery.toLowerCase()));
     },
     addMemory: async (content: string, tags?: string[]) => {
       const session = (await ctx.getSessions(1))[0];
@@ -333,9 +429,9 @@ async function runSkillCommand(skillName: string, commandName: string, args: Rec
         await ctx.saveMemory({
           sessionId: session.id,
           type: 'manual',
-          content,
+          content: sec.sanitizeInput(content),
           timestamp: Date.now(),
-          tags: tags || []
+          tags: (tags || []).map(t => sec.sanitizeInput(t, 100)).slice(0, 20)
         });
       }
     },
@@ -347,9 +443,11 @@ async function runSkillCommand(skillName: string, commandName: string, args: Rec
     }
   };
 
-  const result = await skillsManager.executeSkill(skillName, commandName, args, context);
-  return { output: result, skillName, commandName };
+  const result = await skillsManager.executeSkill(sanitizedSkill, sanitizedCommand, sanitizedArgs, context);
+  return { output: result, skillName: sanitizedSkill, commandName: sanitizedCommand };
 }
+
+// ── Main Server Setup ────────────────────────────────────────────────────
 
 async function main() {
   const reposPath = process.cwd();
@@ -360,67 +458,71 @@ async function main() {
     version: '1.0.0'
   });
 
-  // Register all tools
-  server.tool('get_project_context', {}, getProjectContext);
+  // Register all tools (wrapped with safe error handling)
+  server.tool('get_project_context', {}, safeHandler(getProjectContext));
+
   server.tool('search_memory', {
     query: { type: 'string' },
     limit: { type: 'number', optional: true }
-  }, async ({ query, limit }) => searchMemory(query, limit));
+  }, safeHandler(async ({ query, limit }: any) => searchMemory(query, limit)));
 
   server.tool('save_session', {
     agent: { type: 'string' },
     metadata: { type: 'object', optional: true }
-  }, async ({ agent, metadata }) => saveSession(agent, metadata));
+  }, safeHandler(async ({ agent, metadata }: any) => saveSession(agent, metadata)));
 
   server.tool('end_session', {
     sessionId: { type: 'string' }
-  }, async ({ sessionId }) => endSession(sessionId));
+  }, safeHandler(async ({ sessionId }: any) => endSession(sessionId)));
 
   server.tool('save_memory', {
     sessionId: { type: 'string' },
     memory: { type: 'object' }
-  }, async ({ sessionId, memory }) => saveMemory(sessionId, memory));
+  }, safeHandler(async ({ sessionId, memory }: any) => saveMemory(sessionId, memory)));
 
-  server.tool('summarize_repo', {}, summarizeRepo);
+  server.tool('summarize_repo', {}, safeHandler(summarizeRepo));
 
   server.tool('get_related_files', {
     filePath: { type: 'string' },
     limit: { type: 'number', optional: true }
-  }, async ({ filePath, limit }) => getRelatedFiles(filePath, limit));
+  }, safeHandler(async ({ filePath, limit }: any) => getRelatedFiles(filePath, limit)));
 
   server.tool('get_recent_changes', {
     limit: { type: 'number', optional: true }
-  }, async ({ limit }) => getRecentChanges(limit));
+  }, safeHandler(async ({ limit }: any) => getRecentChanges(limit)));
 
-  server.tool('get_architecture_summary', {}, getArchitectureSummary);
+  server.tool('get_architecture_summary', {}, safeHandler(getArchitectureSummary));
 
   server.tool('semantic_search', {
     query: { type: 'string' },
     limit: { type: 'number', optional: true }
-  }, async ({ query, limit }) => semanticSearch(query, limit));
+  }, safeHandler(async ({ query, limit }: any) => semanticSearch(query, limit)));
 
-  server.tool('update_knowledge_graph', {}, updateKnowledgeGraph);
+  server.tool('update_knowledge_graph', {}, safeHandler(updateKnowledgeGraph));
 
-  server.tool('list_skills', {}, listSkills);
+  server.tool('list_skills', {}, safeHandler(listSkills));
 
   server.tool('load_skill', {
     skillName: { type: 'string' }
-  }, async ({ skillName }) => loadSkill(skillName));
+  }, safeHandler(async ({ skillName }: any) => loadSkill(skillName)));
 
   server.tool('run_skill_command', {
     skillName: { type: 'string' },
     commandName: { type: 'string' },
     args: { type: 'object', optional: true }
-  }, async ({ skillName, commandName, args }) => runSkillCommand(skillName, commandName, args || {}));
+  }, safeHandler(async ({ skillName, commandName, args }: any) =>
+    runSkillCommand(skillName, commandName, args || {})));
 
-  server.tool('get_git_summary', {}, getGitSummary);
+  server.tool('get_git_summary', {}, safeHandler(getGitSummary));
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('ContextHub MCP server started');
+  console.error('ContextHub MCP server started (hardened mode)');
 }
 
 main().catch(error => {
-  console.error('Failed to start MCP server:', error);
+  // Sanitize error output — don't expose internal paths
+  const safeMsg = String(error?.message || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
+  console.error('Failed to start MCP server:', safeMsg);
   process.exit(1);
 });

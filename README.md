@@ -7,24 +7,26 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/TypeScript-5.0+-yellow.svg" alt="TypeScript">
   <img src="https://img.shields.io/badge/Node-18+-orange.svg" alt="Node">
+  <img src="https://img.shields.io/badge/Security-Hardened-brightgreen.svg" alt="Security">
+  <img src="https://img.shields.io/badge/Encryption-AES--256--GCM-blueviolet.svg" alt="Encryption">
 </p>
 
 ---
 
 ## What is ContextHub?
 
-ContextHub is a **local-first, privacy-focused AI memory and context orchestration layer** that gives coding agents persistent memory across sessions. It automatically captures your work context, understands your codebase, and provides intelligent context injection to any AI agent.
+ContextHub is a **local-first, privacy-focused AI memory and context orchestration layer** that gives coding agents persistent memory across sessions. It understands your codebase, provides intelligent context injection to any AI agent, and keeps all your data **encrypted and private**.
 
 ### Key Features
 
-- **🧠 Persistent Memory** — Automatically saves conversations, decisions, and learnings
+- **🧠 Persistent Memory** — Saves conversations, decisions, and learnings across sessions
 - **🔍 Semantic Search** — Natural language queries across all your memories
 - **📊 Code Intelligence** — Analyzes repo structure, dependencies, and architecture
 - **🔌 MCP-Compatible** — Works with Claude Code, Cursor, and any MCP client
-- **🔄 Automatic Context** — No user input needed; captures everything automatically
+- **🔒 Encrypted Storage** — AES-256-GCM encryption at rest for all data
+- **🛡️ Auto-Redaction** — API keys, tokens, and passwords are automatically detected and redacted
 - **📈 Learns Over Time** — Improves relevance through usage patterns
-- **🌐 Local-First** — All data stays in your repository by default
-- **🚀 One-Command Setup** — `npx @contexthub/cli setup` and you're ready
+- **🌐 Local-First** — All data stays on your machine, never leaves your repo
 
 ---
 
@@ -36,11 +38,11 @@ ContextHub is a **local-first, privacy-focused AI memory and context orchestrati
 # Navigate to your project
 cd your-project
 
-# Initialize ContextHub (auto-starts MCP server + memory saving)
+# Initialize ContextHub (starts MCP server + encrypted storage)
 npx @contexthub/cli setup
 
 # Or for local development
-git clone https://github.com/contexthub/contexthub.git
+git clone https://github.com/iMayuuR/contexthub.git
 cd contexthub
 npm install
 npm run build
@@ -48,15 +50,16 @@ node packages/cli/dist/index.js setup
 ```
 
 That's it! ContextHub will:
-1. Initialize in `.contexthub/`
-2. Start the MCP server in background (`localhost:3000`)
-3. Enable automatic memory capture via shell hook
+1. Initialize encrypted storage in `.contexthub/`
+2. Generate encryption key (`.contexthub/.keyfile`, mode `0600`)
+3. Generate auth token (`.contexthub/.auth-token`)
+4. Start the MCP server in background with PID tracking
 
 ### For AI Agents
 
-Configure your AI agent to connect to `http://localhost:3000` as an MCP server. The agent will automatically:
+Configure your AI agent to connect to ContextHub as an MCP server via stdio transport. The agent will automatically:
 - Fetch relevant context before responding
-- Save interactions as memories
+- Save interactions as encrypted memories
 - Query the knowledge graph and repo intelligence
 
 ---
@@ -86,6 +89,9 @@ contexthub search --query "how to implement caching" --limit 5
 
 # Start MCP server manually
 contexthub start --port 3000
+
+# Stop MCP server cleanly
+contexthub stop
 ```
 
 ---
@@ -95,35 +101,41 @@ contexthub start --port 3000
 ```
 contexthub/
 ├── packages/
-│   ├── core/              # Memory storage & session management
+│   ├── core/              # Memory storage, encryption & session management
+│   │   ├── security.ts    # 🔒 SecurityManager (AES-256-GCM, validation)
+│   │   └── memory-storage.ts # Encrypted JSON storage with atomic writes
 │   ├── cli/               # Command-line interface
-│   ├── mcp-server/        # MCP protocol server
+│   │   ├── setup.ts       # Secure initialization (no shell modification)
+│   │   ├── start.ts       # Server with PID tracking
+│   │   └── stop.ts        # Clean shutdown command
+│   ├── mcp-server/        # MCP protocol server (hardened)
 │   ├── vector-engine/     # Embeddings & semantic search
-│   ├── repo-parser/       # Code structure analysis
+│   ├── repo-parser/       # Code structure analysis (sandboxed)
 │   ├── git-integration/   # Git history & commit tracking
 │   ├── context-injector/  # Smart context retrieval
-│   ├── memory-engine/      # Advanced memory algorithms
-│   ├── agent-connectors/  # AI agent adapters
-│   ├── skills/            # Reusable skill modules
+│   ├── memory-engine/     # Advanced memory algorithms
+│   ├── agent-connectors/  # AI agent adapters (sanitized)
+│   ├── skills/            # Built-in skill modules (locked)
 │   └── shared-types/      # TypeScript interfaces
-├── apps/
-│   ├── web/               # Dashboard (coming soon)
-│   └── desktop/           # Electron app (coming soon)
-└── .contexthub/           # Per-repo storage
-    ├── memories.json      # Memory storage
-    ├── sessions.json      # Session history
-    ├── embeddings/        # Vector embeddings
-    ├── graph/             # Knowledge graph
-    └── skills/            # Custom skills
+├── SECURITY.md            # 🔒 Full security scan report
+└── .contexthub/           # Per-repo encrypted storage
+    ├── memories.json      # 🔐 Encrypted memory storage
+    ├── sessions.json      # 🔐 Encrypted session history
+    ├── project-metadata.json # 🔐 Encrypted metadata
+    ├── .keyfile           # 🔑 Encryption key (mode 0600)
+    ├── .auth-token        # 🔑 MCP auth token (mode 0600)
+    ├── server.pid         # Process ID for server management
+    └── embeddings/        # Vector embeddings
 ```
 
 ### How It Works
 
-1. **Capture** — Every command, decision, and interaction is automatically saved
-2. **Analyze** — RepoParser builds code structure understanding
-3. **Embed** — VectorEngine generates semantic embeddings
-4. **Store** — Memories persist in `.contexthub/memories.json`
-5. **Inject** — ContextInjector retrieves relevant context for AI queries
+1. **Capture** — Interactions saved via MCP tools (no shell hooks)
+2. **Sanitize** — All input validated, sensitive data auto-redacted
+3. **Encrypt** — Data encrypted with AES-256-GCM before writing to disk
+4. **Analyze** — RepoParser builds code structure understanding (sandboxed)
+5. **Embed** — VectorEngine generates semantic embeddings
+6. **Inject** — ContextInjector retrieves relevant context for AI queries
 
 ---
 
@@ -135,76 +147,52 @@ contexthub/
 | `search_memory` | Full-text search across memories |
 | `semantic_search` | Vector similarity search |
 | `save_session` | Create new agent session |
-| `save_memory` | Store memory entry |
+| `end_session` | End an active session |
+| `save_memory` | Store memory entry (sanitized + encrypted) |
 | `summarize_repo` | Generate repository summary |
 | `get_architecture_summary` | Code structure analysis |
 | `get_related_files` | Find connected code files |
 | `get_recent_changes` | Git commit history |
 | `get_git_summary` | Git repository status |
+| `update_knowledge_graph` | Refresh code analysis |
 | `list_skills` / `load_skill` | Skills system |
-| `run_skill_command` | Execute skill commands |
+| `run_skill_command` | Execute built-in skill commands |
+
+> All tools are wrapped with `safeHandler()` — errors never expose internal paths or stack traces.
 
 ---
 
-## Configuration
+## Security & Privacy
 
-### `contexthub.config.js`
+ContextHub is **secure by design**. See [SECURITY.md](SECURITY.md) for the full audit report.
 
-```javascript
-module.exports = {
-  // Auto-start MCP server on shell load
-  autoStart: true,
-  
-  // Auto-save commands to memory
-  autoSave: true,
-  
-  // MCP server port
-  port: 3000,
-  
-  // Vector search dimensions
-  vectorDimension: 1536,
-  
-  // Context injection settings
-  contextInjection: {
-    maxTokens: 4000,
-    includeRecent: 5,
-    includeRelated: true
-  }
-};
-```
+| Protection | Details |
+|------------|---------|
+| 🔐 **Encryption** | AES-256-GCM at rest for all data files |
+| 🛡️ **Auto-Redaction** | API keys, tokens, passwords detected and redacted |
+| 🚫 **No Shell Hooks** | No `.bashrc`/`.zshrc` modification, no command capture |
+| 🔒 **Path Safety** | Directory traversal and symlink attacks prevented |
+| ✅ **Input Validation** | All parameters validated and sanitized |
+| 🔑 **Auth Support** | Optional HMAC token authentication for MCP |
+| 📦 **Atomic Writes** | No data corruption on crash |
+| 🧹 **Error Sanitization** | No internal paths or stack traces leaked |
+| 🏠 **Local-First** | Zero telemetry, zero external calls |
+| 🔗 **0 npm Vulnerabilities** | Clean dependency tree |
 
----
-
-## Development
-
-### Building from Source
+### Quick Security Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/contexthub/contexthub.git
-cd contexthub
+# Optional: Enable MCP authentication
+export CONTEXTHUB_TOKEN=your-secret-token
 
-# Install dependencies
-npm install
+# Optional: Provide your own encryption key
+export CONTEXTHUB_KEY=your-strong-passphrase
 
-# Build all packages
-npm run build
-
-# Run CLI
-node packages/cli/dist/index.js --help
+# Verify file permissions
+ls -la .contexthub/
+# Directory: drwx------ (700)
+# Files:    -rw------- (600)
 ```
-
-### Project Structure
-
-| Package | Purpose |
-|---------|---------|
-| `@contexthub/core` | Core API — sessions, memories, storage |
-| `@contexthub/vector-engine` | Embedding generation & similarity search |
-| `@contexthub/repo-parser` | AST parsing & code analysis |
-| `@contexthub/git-integration` | Git operations via simple-git |
-| `@contexthub/mcp-server` | MCP protocol implementation |
-| `@contexthub/context-injector` | Smart context retrieval |
-| `@contexthub/agent-connectors` | Claude Code, Cursor adapters |
 
 ---
 
@@ -219,38 +207,53 @@ node packages/cli/dist/index.js --help
 | `architecture` | Design pattern / structure |
 | `bugfix` | Bug description & fix |
 | `manual` | User-added note |
+| `commit` | Git commit record |
 
 ---
 
 ## Skills System
 
-Skills extend ContextHub with custom commands:
+ContextHub includes **3 built-in skills** (no external skill loading for security):
 
-```typescript
-// Example skill: debug
-{
-  name: 'debug',
-  triggers: ['bug', 'error', 'issue'],
-  commands: [
-    {
-      name: 'find-similar',
-      description: 'Find similar past bugs',
-      run: async (args, ctx) => {
-        return "Found 3 related bug fixes...";
-      }
-    }
-  ]
-}
-```
+| Skill | Commands | Triggers |
+|-------|----------|----------|
+| `architect` | `analyze` — Analyze codebase architecture | architecture, design, structure |
+| `debug` | `find-similar` — Find similar past bugs | bug, error, fix, issue |
+| `review` | `review-changes` — Review recent changes | review, pr, pull request |
 
 ---
 
-## Security & Privacy
+## Development
 
-- **Local-First** — All data stored in `.contexthub/` directory
-- **No Cloud Sync** — Data never leaves your machine unless you opt in
-- **Privacy-Focused** — No telemetry or tracking
-- **GitIgnored** — `.contexthub/` is automatically gitignored
+### Building from Source
+
+```bash
+# Clone repository
+git clone https://github.com/iMayuuR/contexthub.git
+cd contexthub
+
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Run CLI
+node packages/cli/dist/index.js --help
+```
+
+### Package Structure
+
+| Package | Purpose |
+|---------|---------|
+| `@contexthub/core` | Core API — sessions, memories, encryption, SecurityManager |
+| `@contexthub/vector-engine` | Embedding generation & similarity search |
+| `@contexthub/repo-parser` | Code parsing & analysis (sandboxed) |
+| `@contexthub/git-integration` | Git operations via simple-git |
+| `@contexthub/mcp-server` | MCP protocol implementation (hardened) |
+| `@contexthub/agent-connectors` | Claude Code, Cursor adapters (sanitized) |
+| `@contexthub/skills` | Built-in skill modules (locked) |
+| `@contexthub/shared-types` | TypeScript interfaces |
 
 ---
 
@@ -261,7 +264,7 @@ Skills extend ContextHub with custom commands:
 - [ ] WebSocket transport for MCP
 - [ ] Cloud sync with E2E encryption
 - [ ] Team collaboration features
-- [ ] Advanced skill marketplace
+- [ ] Comprehensive test suite
 
 ---
 
@@ -276,5 +279,5 @@ MIT © ContextHub Contributors
 ---
 
 <p align="center">
-  <strong>Built for developers who want AI that actually understands their code.</strong>
+  <strong>Built for developers who want AI that actually understands their code — securely.</strong>
 </p>

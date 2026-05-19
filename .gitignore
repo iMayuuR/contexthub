@@ -9,6 +9,11 @@ build/
 
 # Generated files
 .contexthub/
+# Defense-in-depth: explicitly ignore security-sensitive files
+# even if .contexthub/ is removed from gitignore
+**/.keyfile
+**/.auth-token
+**/server.pid
 *.log
 
 # IDE

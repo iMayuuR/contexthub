@@ -1,14 +1,16 @@
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore, SecurityManager } from '@contexthub/core';
 import type { Session, MemoryEntry } from '@contexthub/shared-types';
 
 // Base class for agent connectors
 export abstract class AgentConnector {
   protected core: ContextHubCore;
   protected agentName: string;
+  protected security: SecurityManager;
 
-  constructor(core: ContextHubCore, agentName: string) {
+  constructor(core: ContextHubCore, agentName: string, repoPath?: string) {
     this.core = core;
     this.agentName = agentName;
+    this.security = new SecurityManager(repoPath || process.cwd());
   }
 
   /**
@@ -22,6 +24,36 @@ export abstract class AgentConnector {
    * Should save the interaction and update any internal state.
    */
   abstract postprocessResponse(prompt: string, response: string, sessionId: string): Promise<void>;
+
+  /**
+   * Safely save content to memory with sanitization and redaction.
+   */
+  protected async safeSaveMemory(sessionId: string, type: string, content: string, tags: string[]): Promise<void> {
+    // Sanitize content
+    let sanitized = this.security.sanitizeInput(content);
+
+    // Redact sensitive data (API keys, passwords, tokens)
+    if (this.security.isSensitive(sanitized)) {
+      sanitized = this.security.redactSensitive(sanitized);
+    }
+
+    // Validate type
+    const validType = this.security.validateMemoryType(type);
+
+    // Sanitize tags
+    const safeTags = tags
+      .map(t => this.security.sanitizeInput(t, 100))
+      .filter(t => t.length > 0)
+      .slice(0, 20);
+
+    await this.core.saveMemory({
+      sessionId,
+      type: validType as any,
+      content: sanitized,
+      timestamp: Date.now(),
+      tags: safeTags
+    });
+  }
 
   /**
    * Called when the agent session starts.
@@ -41,8 +73,8 @@ export abstract class AgentConnector {
 // Specific connectors for different agents can extend this base class.
 
 export class ClaudeCodeConnector extends AgentConnector {
-  constructor(core: ContextHubCore) {
-    super(core, 'claude-code');
+  constructor(core: ContextHubCore, repoPath?: string) {
+    super(core, 'claude-code', repoPath);
   }
 
   async preprocessPrompt(prompt: string, sessionId: string): Promise<string> {
@@ -53,29 +85,15 @@ export class ClaudeCodeConnector extends AgentConnector {
   }
 
   async postprocessResponse(prompt: string, response: string, sessionId: string): Promise<void> {
-    // Save the interaction
-    const core = this.core;
-    await core.saveMemory({
-      sessionId,
-      type: 'prompt',
-      content: prompt,
-      timestamp: Date.now(),
-      tags: ['prompt', 'claude-code']
-    });
-
-    await core.saveMemory({
-      sessionId,
-      type: 'response',
-      content: response,
-      timestamp: Date.now(),
-      tags: ['response', 'claude-code']
-    });
+    // Use safeSaveMemory — sanitized + redacted
+    await this.safeSaveMemory(sessionId, 'prompt', prompt, ['prompt', 'claude-code']);
+    await this.safeSaveMemory(sessionId, 'response', response, ['response', 'claude-code']);
   }
 }
 
 export class CursorConnector extends AgentConnector {
-  constructor(core: ContextHubCore) {
-    super(core, 'cursor');
+  constructor(core: ContextHubCore, repoPath?: string) {
+    super(core, 'cursor', repoPath);
   }
 
   async preprocessPrompt(prompt: string, sessionId: string): Promise<string> {
@@ -83,22 +101,9 @@ export class CursorConnector extends AgentConnector {
   }
 
   async postprocessResponse(prompt: string, response: string, sessionId: string): Promise<void> {
-    const core = this.core;
-    await core.saveMemory({
-      sessionId,
-      type: 'prompt',
-      content: prompt,
-      timestamp: Date.now(),
-      tags: ['prompt', 'cursor']
-    });
-
-    await core.saveMemory({
-      sessionId,
-      type: 'response',
-      content: response,
-      timestamp: Date.now(),
-      tags: ['response', 'cursor']
-    });
+    // Use safeSaveMemory — sanitized + redacted
+    await this.safeSaveMemory(sessionId, 'prompt', prompt, ['prompt', 'cursor']);
+    await this.safeSaveMemory(sessionId, 'response', response, ['response', 'cursor']);
   }
 }
 

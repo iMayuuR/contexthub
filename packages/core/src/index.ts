@@ -1,5 +1,9 @@
 import { MemoryStorage } from './memory-storage';
+import { SecurityManager } from './security';
 import type { Session, MemoryEntry, ProjectMetadata } from '@contexthub/shared-types';
+
+export { SecurityManager } from './security';
+
 
 export class ContextHubCore {
   private storage: MemoryStorage;

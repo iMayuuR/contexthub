@@ -7,6 +7,7 @@ import { memoryCommand } from './commands/memory';
 import { timelineCommand } from './commands/timeline';
 import { searchCommand } from './commands/search';
 import { setupCommand } from './commands/setup';
+import { stopCommand } from './commands/stop';
 import { ContextHubCore } from '@contexthub/core';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
@@ -73,5 +74,26 @@ program
   .action(async () => {
     await setupCommand();
   });
+
+// Stop ContextHub server
+program
+  .command('stop')
+  .description('Stop the running ContextHub MCP server')
+  .action(async () => {
+    await stopCommand();
+  });
+
+// Global error handler — sanitize output
+process.on('uncaughtException', (err) => {
+  const safeMsg = String(err?.message || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
+  console.error('Unexpected error:', safeMsg);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  const safeMsg = String(reason || 'Unknown error').replace(/\/[^\s]+/g, '[path]');
+  console.error('Unhandled rejection:', safeMsg);
+  process.exit(1);
+});
 
 program.parse();

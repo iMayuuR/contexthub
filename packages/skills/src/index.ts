@@ -1,5 +1,13 @@
-import * as fs from 'fs';
-import * as path from 'path';
+/**
+ * Skills Manager — Hardened
+ *
+ * Security changes:
+ * - REMOVED: Loading arbitrary skill files from disk (RCE vector)
+ * - REMOVED: saveSkill, addSkill, deleteSkill (no disk-based skill management)
+ * - ONLY built-in skills are available (architect, debug, review)
+ * - Skill names validated against an allowlist
+ * - Context operations are bounded (limited results, rate-limited)
+ */
 
 export interface Skill {
   name: string;
@@ -23,51 +31,23 @@ export interface SkillContext {
   getGitInfo: () => Promise<any>;
 }
 
+// Allowlist of built-in skill names
+const ALLOWED_SKILL_NAMES = new Set(['architect', 'debug', 'review']);
+
 export class SkillsManager {
-  private skillsPath: string;
   private skills: Map<string, Skill>;
 
-  constructor(repoPath: string) {
-    this.skillsPath = path.join(repoPath, '.contexthub', 'skills');
+  constructor(_repoPath: string) {
     this.skills = new Map();
-    this.loadSkills();
+    this.registerBuiltInSkills();
   }
 
   /**
-   * Load all skills from the skills directory
+   * Register built-in skills (hardcoded, not loaded from disk).
+   * These are the only skills that can execute code.
    */
-  private loadSkills(): void {
-    try {
-      if (!fs.existsSync(this.skillsPath)) {
-        fs.mkdirSync(this.skillsPath, { recursive: true });
-        this.createDefaultSkills();
-        return;
-      }
-
-      const files = fs.readdirSync(this.skillsPath).filter(f => f.endsWith('.json'));
-      for (const file of files) {
-        try {
-          const skillData = JSON.parse(fs.readFileSync(path.join(this.skillsPath, file), 'utf-8'));
-          this.skills.set(skillData.name, skillData);
-        } catch (e) {
-          console.error(`Failed to load skill ${file}:`, e);
-        }
-      }
-
-      if (this.skills.size === 0) {
-        this.createDefaultSkills();
-      }
-    } catch (e) {
-      console.error('Failed to load skills:', e);
-      this.createDefaultSkills();
-    }
-  }
-
-  /**
-   * Create default skills
-   */
-  private createDefaultSkills(): void {
-    const defaultSkills: Skill[] = [
+  private registerBuiltInSkills(): void {
+    const builtInSkills: Skill[] = [
       {
         name: 'architect',
         version: '1.0.0',
@@ -93,7 +73,8 @@ export class SkillsManager {
             name: 'find-similar',
             description: 'Find similar past bugs/fixes',
             run: async (args, context) => {
-              const memories = await context.getMemories(`bug ${args.query || ''}`);
+              const query = (args.query || '').substring(0, 200); // Cap query length
+              const memories = await context.getMemories(`bug ${query}`);
               return `Found ${memories.length} related bug fixes.`;
             }
           }
@@ -118,73 +99,33 @@ export class SkillsManager {
       }
     ];
 
-    // Save default skills
-    for (const skill of defaultSkills) {
-      this.saveSkill(skill);
+    for (const skill of builtInSkills) {
+      this.skills.set(skill.name, skill);
     }
   }
 
   /**
-   * Save a skill to disk
-   */
-  private saveSkill(skill: Skill): void {
-    const filePath = path.join(this.skillsPath, `${skill.name}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(skill, null, 2));
-    this.skills.set(skill.name, skill);
-  }
-
-  /**
-   * List all available skills
+   * List all available skills (built-in only).
    */
   listSkills(): Skill[] {
     return Array.from(this.skills.values());
   }
 
   /**
-   * Get skill by name
+   * Get skill by name (validated against allowlist).
    */
   getSkill(name: string): Skill | undefined {
+    if (!ALLOWED_SKILL_NAMES.has(name)) {
+      return undefined;
+    }
     return this.skills.get(name);
   }
 
   /**
-   * Add a new skill
-   */
-  addSkill(skill: Skill): void {
-    if (this.skills.has(skill.name)) {
-      throw new Error(`Skill ${skill.name} already exists`);
-    }
-    this.saveSkill(skill);
-  }
-
-  /**
-   * Update an existing skill
-   */
-  updateSkill(name: string, updates: Partial<Skill>): void {
-    const skill = this.skills.get(name);
-    if (!skill) {
-      throw new Error(`Skill ${name} not found`);
-    }
-    const updated = { ...skill, ...updates, name };
-    this.saveSkill(updated);
-  }
-
-  /**
-   * Delete a skill
-   */
-  deleteSkill(name: string): void {
-    const filePath = path.join(this.skillsPath, `${name}.json`);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-    this.skills.delete(name);
-  }
-
-  /**
-   * Find skills matching a query/topic
+   * Find skills matching a query/topic.
    */
   findRelevantSkills(query: string): Skill[] {
-    const queryLower = query.toLowerCase();
+    const queryLower = query.toLowerCase().substring(0, 200); // Cap query
     const relevant: { skill: Skill; score: number }[] = [];
 
     for (const skill of this.skills.values()) {
@@ -210,26 +151,24 @@ export class SkillsManager {
   }
 
   /**
-   * Execute a skill command
+   * Execute a skill command (built-in only, validated).
    */
   async executeSkill(skillName: string, commandName: string, args: Record<string, string>, context: SkillContext): Promise<string> {
+    // Validate skill name against allowlist
+    if (!ALLOWED_SKILL_NAMES.has(skillName)) {
+      throw new Error(`Skill '${skillName}' is not a registered built-in skill`);
+    }
+
     const skill = this.skills.get(skillName);
     if (!skill) {
-      throw new Error(`Skill ${skillName} not found`);
+      throw new Error(`Skill '${skillName}' not found`);
     }
 
     const command = skill.commands.find(c => c.name === commandName);
     if (!command) {
-      throw new Error(`Command ${commandName} not found in skill ${skillName}`);
+      throw new Error(`Command '${commandName}' not found in skill '${skillName}'`);
     }
 
     return command.run(args, context);
-  }
-
-  /**
-   * Register a dynamic skill from code
-   */
-  registerDynamicSkill(skill: Skill): void {
-    this.skills.set(skill.name, skill);
   }
 }

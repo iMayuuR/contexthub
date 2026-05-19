@@ -1,6 +1,11 @@
 import type { VectorSearchResult, MemoryEntry } from '@contexthub/shared-types';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
+
+// ── Security Constants ────────────────────────────────────────────────────
+const MAX_EMBEDDINGS = 10000;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 interface EmbeddingStore {
   [id: string]: number[];
@@ -21,20 +26,46 @@ export class VectorEngine {
     try {
       const indexPath = path.join(this.embeddingsPath, 'index.json');
       if (fs.existsSync(indexPath)) {
+        // Security: Check file size before reading
+        const stats = fs.statSync(indexPath);
+        if (stats.size > MAX_FILE_SIZE) {
+          console.error('Embeddings file too large, starting fresh');
+          return {};
+        }
         return JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
       }
     } catch (e) {
-      console.error('Failed to load embeddings:', e);
+      console.error('Failed to load embeddings:', (e as Error)?.message || 'unknown error');
     }
     return {};
   }
 
   private saveEmbeddings(): void {
+    // Security: Cap embedding count
+    const keys = Object.keys(this.embeddings);
+    if (keys.length > MAX_EMBEDDINGS) {
+      // Remove oldest entries (by key insertion order)
+      const toRemove = keys.slice(0, keys.length - MAX_EMBEDDINGS);
+      for (const key of toRemove) {
+        delete this.embeddings[key];
+      }
+      console.error(`Embedding store capped at ${MAX_EMBEDDINGS} entries`);
+    }
+
     if (!fs.existsSync(this.embeddingsPath)) {
       fs.mkdirSync(this.embeddingsPath, { recursive: true });
     }
+
+    // Atomic write: write to tmp, then rename
     const indexPath = path.join(this.embeddingsPath, 'index.json');
-    fs.writeFileSync(indexPath, JSON.stringify(this.embeddings, null, 2));
+    const tmpPath = indexPath + `.tmp.${crypto.randomBytes(4).toString('hex')}`;
+    try {
+      fs.writeFileSync(tmpPath, JSON.stringify(this.embeddings, null, 2), { mode: 0o600 });
+      fs.renameSync(tmpPath, indexPath);
+    } catch (e) {
+      try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+      throw e;
+    }
   }
 
   /**

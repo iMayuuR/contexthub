@@ -3,6 +3,27 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
 
+// ── Security Constants ────────────────────────────────────────────────────
+const MAX_FILES_PER_SCAN = 1000;
+const MAX_FILE_SIZE = 1024 * 1024; // 1MB per file
+const SENSITIVE_FILE_PATTERNS = [
+  '.env', '.env.local', '.env.production', '.env.staging',
+  '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore',
+  'credentials*', 'secrets*', '.npmrc', '.pypirc',
+  'id_rsa*', 'id_ed25519*', '*.crt', '*.cert',
+  '.htpasswd', '*.secret',
+];
+
+function isSensitiveFile(filePath: string): boolean {
+  const basename = path.basename(filePath).toLowerCase();
+  return SENSITIVE_FILE_PATTERNS.some(pattern => {
+    const p = pattern.toLowerCase();
+    if (p.startsWith('*.')) return basename.endsWith(p.slice(1));
+    if (p.endsWith('*')) return basename.startsWith(p.slice(0, -1));
+    return basename === p || basename.startsWith(p.replace('*', ''));
+  });
+}
+
 export class RepoParser {
   private repoPath: string;
 
@@ -233,7 +254,7 @@ export class RepoParser {
   }
 
   /**
-   * Parse a single file
+   * Parse a single file (with size limit and sensitive file check)
    */
   async parseFile(filePath: string): Promise<ParsedFile> {
     const ext = filePath.split('.').pop()?.toLowerCase();
@@ -242,6 +263,40 @@ export class RepoParser {
     let exports: ImportExport[] = [];
 
     try {
+      // Security: Skip sensitive files
+      if (isSensitiveFile(filePath)) {
+        return {
+          path: filePath,
+          language: this.detectLanguage(filePath),
+          symbols: [],
+          imports: [],
+          exports: []
+        };
+      }
+
+      // Security: Don't follow symlinks — must use lstatSync (not statSync!)
+      const lstats = fs.lstatSync(filePath);
+      if (lstats.isSymbolicLink()) {
+        return {
+          path: filePath,
+          language: this.detectLanguage(filePath),
+          symbols: [],
+          imports: [],
+          exports: []
+        };
+      }
+
+      // Security: Check file size before reading
+      if (lstats.size > MAX_FILE_SIZE) {
+        return {
+          path: filePath,
+          language: this.detectLanguage(filePath),
+          symbols: [],
+          imports: [],
+          exports: []
+        };
+      }
+
       const content = fs.readFileSync(filePath, 'utf-8');
 
       if (ext === 'ts' || ext === 'tsx' || ext === 'js' || ext === 'jsx' || ext === 'mjs' || ext === 'cjs') {
@@ -256,7 +311,8 @@ export class RepoParser {
         exports = parsed.exports;
       }
     } catch (e) {
-      console.error(`Failed to parse ${filePath}:`, e);
+      // Sanitized error — don't expose full path
+      console.error(`Failed to parse file:`, (e as Error)?.message || 'unknown error');
     }
 
     return {
@@ -269,23 +325,40 @@ export class RepoParser {
   }
 
   /**
-   * Parse all code files in a directory
+   * Parse all code files in a directory (with security restrictions)
    */
   async parseDirectory(dirPath: string, patterns: string[] = ['**/*.{ts,tsx,js,jsx,py}']): Promise<ParsedFile[]> {
     const results: ParsedFile[] = [];
+    const repoRoot = path.resolve(this.repoPath);
 
     for (const pattern of patterns) {
       const files = await glob(pattern, { cwd: dirPath, absolute: true });
+
+      let scannedCount = 0;
       for (const file of files) {
-        // Skip node_modules and .contexthub
+        // Security: Cap file count
+        if (scannedCount >= MAX_FILES_PER_SCAN) {
+          console.error(`File scan limit reached (${MAX_FILES_PER_SCAN}). Stopping.`);
+          break;
+        }
+
+        // Security: Only parse files within repo boundary
+        const resolved = path.resolve(file);
+        if (!resolved.startsWith(repoRoot + path.sep) && resolved !== repoRoot) {
+          continue;
+        }
+
+        // Skip node_modules, .contexthub, and sensitive files
         if (file.includes('node_modules') || file.includes('.contexthub')) continue;
+        if (isSensitiveFile(file)) continue;
 
         const parsed = await this.parseFile(file);
         results.push(parsed);
+        scannedCount++;
       }
     }
 
-    console.log(`Parsed ${results.length} files in ${dirPath}`);
+    console.error(`Parsed ${results.length} files in directory (limit: ${MAX_FILES_PER_SCAN})`);
     return results;
   }
 
