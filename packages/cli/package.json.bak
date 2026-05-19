@@ -1,0 +1,32 @@
+{
+  "name": "@contexthub/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for ContextHub",
+  "bin": {
+    "contexthub": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/core": "file:../core",
+    "@contexthub/shared-types": "file:../shared-types",
+    "commander": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/commander": "^2.12.5",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^18.19.130",
+    "chalk": "^5.6.2",
+    "conf": "^15.1.0",
+    "inquirer": "^13.4.3",
+    "ora": "^9.4.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@contexthub/agent-connectors",
+  "version": "1.0.0",
+  "description": "Agent connectors for ContextHub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/core": "file:../core",
+    "@contexthub/shared-types": "file:../shared-types"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

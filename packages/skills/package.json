@@ -1,0 +1,24 @@
+{
+  "name": "@contexthub/skills",
+  "version": "0.1.0",
+  "description": "Skills system for ContextHub - reusable AI skill modules",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/core": "file:../core",
+    "@contexthub/shared-types": "file:../shared-types",
+    "gray-matter": "^4.0.0",
+    "front-matter": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

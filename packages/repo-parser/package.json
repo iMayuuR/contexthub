@@ -1,0 +1,23 @@
+{
+  "name": "@contexthub/repo-parser",
+  "version": "1.0.0",
+  "description": "Repository parser for ContextHub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/shared-types": "file:../shared-types",
+    "glob": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.0.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@contexthub/core": ["packages/core/dist"],
+      "@contexthub/shared-types": ["packages/shared-types/dist"],
+      "@contexthub/mcp-server": ["packages/mcp-server/dist"],
+      "@contexthub/cli": ["packages/cli/dist"],
+      "@contexthub/vector-engine": ["packages/vector-engine/dist"],
+      "@contexthub/repo-parser": ["packages/repo-parser/dist"],
+      "@contexthub/git-integration": ["packages/git-integration/dist"],
+      "@contexthub/skills": ["packages/skills/dist"],
+      "@contexthub/memory-engine": ["packages/memory-engine/dist"],
+      "@contexthub/context-injector": ["packages/context-injector/dist"]
+    }
+  },
+  "files": [],
+  "references": [
+    { "path": "packages/shared-types" },
+    { "path": "packages/core" },
+    { "path": "packages/vector-engine" },
+    { "path": "packages/repo-parser" },
+    { "path": "packages/git-integration" },
+    { "path": "packages/skills" },
+    { "path": "packages/memory-engine" },
+    { "path": "packages/context-injector" },
+    { "path": "packages/mcp-server" },
+    { "path": "packages/cli" }
+  ]
+}

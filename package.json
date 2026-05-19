@@ -1,0 +1,18 @@
+{
+  "name": "contexthub",
+  "version": "0.1.0",
+  "description": "ContextHub - persistent AI memory + context orchestration layer for coding agents",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build && npm run dev --workspace=packages/core --workspace=packages/cli",
+    "build": "npm run build --workspace=packages/shared-types && npm run build --workspace=packages/core && npm run build --workspace=packages/mcp-server && npm run build --workspace=packages/cli",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "typescript": "^5.9.3"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

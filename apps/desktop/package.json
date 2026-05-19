@@ -1,0 +1,41 @@
+{
+  "name": "@contexthub/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "tsc && electron-builder",
+    "dist": "npm run build"
+  },
+  "build": {
+    "appId": "com.contexthub.desktop",
+    "productName": "ContextHub",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "dependencies": {
+    "electron": "^27.0.0",
+    "@contexthub/core": "file:../../packages/core",
+    "@contexthub/shared-types": "file:../../packages/shared-types"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "electron-builder": "^24.0.0",
+    "typescript": "^5.0.0"
+  }
+}

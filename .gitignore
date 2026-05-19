@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+out/
+build/
+*.tsbuildinfo
+
+# Generated files
+.contexthub/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Release builds
+release/
+*.exe
+*.dmg
+*.AppImage
+
+# MCP server
+packages/mcp-server/data/

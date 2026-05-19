@@ -1,0 +1,21 @@
+{
+  "name": "@contexthub/core",
+  "version": "1.0.0",
+  "description": "Core ContextHub engine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/shared-types": "file:../shared-types"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "typescript": "^5.0.0"
+  }
+}

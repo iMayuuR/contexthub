@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(md D:\\\\contexthub\\\\test-init)",
+      "Bash(dir packages *)",
+      "Bash(npm run *)",
+      "Bash(pnpm install *)",
+      "Bash(npm install *)",
+      "PowerShell(node packages/cli/dist/index.js init)",
+      "PowerShell(Set-Content *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(ls *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\contexthub\" -Force)",
+      "Bash(Select-Object -Property Name, Mode, LastWriteTime)"
+    ]
+  }
+}

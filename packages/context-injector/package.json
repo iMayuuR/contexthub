@@ -1,0 +1,24 @@
+{
+  "name": "@contexthub/context-injector",
+  "version": "1.0.0",
+  "description": "Context injection engine for ContextHub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@contexthub/core": "file:../core",
+    "@contexthub/shared-types": "file:../shared-types",
+    "@contexthub/vector-engine": "file:../vector-engine",
+    "@contexthub/repo-parser": "file:../repo-parser"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
