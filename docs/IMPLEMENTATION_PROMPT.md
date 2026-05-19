@@ -1,233 +1,100 @@
-# ContextHub — Remaining Work
+# ContextHub — Final Pending Work (one shot)
 
-> **Agents:** Implement **only** items in this file. Shipped features → [`IMPLEMENTED.md`](./IMPLEMENTED.md).
+> **Agents: complete EVERY item in [§1](#1-pending-checklist) in a single session/PR.**  
+> Do not re-implement features listed in [`IMPLEMENTED.md`](./IMPLEMENTED.md).
 >
-> **Before coding:** `CLAUDE.md`, `SECURITY.md`, `AGENT_SETUP.md`.
->
+> **Read first:** `CLAUDE.md`, `SECURITY.md`, `AGENT_SETUP.md`  
 > **Author:** Mayur Dattatray Patil · **Repo:** https://github.com/iMayuuR/contexthub
 
 ---
 
-## 1. Backlog
+## 1. Pending checklist
 
-| ID | Task | Block |
-*(No outstanding backlog items remaining)*
-
-**Not in backlog (done):** memory linking, skill install, parser tests, CI, publish order, ingest-docs, dashboard auth, apps/web client, god-nodes, communities, GRAPH_REPORT, plugin-pdf, `sync-design.md`, `limits.ts`, `get_context_bundle` + `explain_symbol` MCP, `.contexthubignore` + `doctor` + `status` + `benchmark`, `RRF hybrid query`, `Embeddings upgrade`, `Tree-sitter WASM`, `Session graph delta`, `Memory decay + compact`, `MCP resources + prompts`, `Multi-root config`, `Config loader`, `CI Integration`, `PR blast-radius commenting`, `Demo repo & comparison docs`, `15+ repo-parser languages`, `export-memories CLI`.
-
----
-
-## 2. Work order
-
-*(All backlog tasks are successfully completed)*
-
-One block per PR unless user batches.
+| # | Task | Done when |
+|---|------|-----------|
+| P1 | **`watch` respects `contexthub.config.js` `roots`** — use `loadConfig(repoPath).roots` in `packages/cli/src/commands/watch.ts` (graph build already multi-root via `knowledge-graph`; watch must match) | Changing `roots` in config changes which dirs `watch` observes |
+| P2 | **God-node fixture test** — add `packages/knowledge-graph/fixtures/hub-graph.json` (synthetic ~10k nodes or generator in test) + assert `getGodNodes(10)` returns ≥3 hubs | Test passes in `npm test --workspace=packages/knowledge-graph` |
+| P3 | **`get_context_bundle` latency test** — integration or unit test: `buildContextBundle` on `examples/demo-repo` completes in **< 500ms** (generous CI timeout OK; fail if > 1s locally) | Test in core or mcp-server `__tests__` |
+| P4 | **`contexthub doctor` smoke test** — in `packages/cli/src/__tests__/doctor.test.ts` or extend `tests/integration/smoke.sh`: after `setup` in temp dir, `doctor` exits 0 | CI green |
+| P5 | **RRF vs naive merge test** — in `packages/core/src/__tests__/query-pipeline.test.ts`: fixture where keyword-only misses but semantic+graph finds target; assert RRF ranks target higher than naive merge | Test passes |
+| P6 | **Local embeddings smoke** — in `packages/vector-engine` or core test: `mode: 'local'`, no API key, `searchSimilarText` returns expected top hit on 5–10 seeded memories | Test passes |
+| P7 | **Doc sync** — update `IMPLEMENTED.md` completion table; remove any stale “not done” notes; ensure `README.md` links `IMPLEMENTED.md` + this file | Docs accurate |
+| P8 | **Delete this file’s checklist rows** — when P1–P7 pass, replace `IMPLEMENTATION_PROMPT.md` body with a short “All roadmap items complete” note (keep link to `IMPLEMENTED.md`) | File reflects zero pending |
 
 ---
 
-## 3. Acceptance (pending)
-
-| # | Criterion | Block |
-|---|-----------|-------|
-| 13 | `get_context_bundle` < 500ms small repo | R-15 |
-| 14 | `contexthub doctor` passes on healthy setup | R-19 |
-| 16 | `get_god_nodes` ≥3 hubs on 10k fixture | R-13 ✅ code exists — add fixture test in R-07 extension |
-| 17 | Useful semantic search, zero API keys | R-17 |
-| 18 | RRF beats naive merge on fixture | R-16 |
-
----
-
-## 4. Agent rules
-
-1. One `R-XX` at a time · `npm run build` must pass.
-2. `safeHandler` + `SECURITY.md` on every new MCP tool.
-3. Never commit `.contexthub/`, `.keyfile`, `.auth-token`.
-4. Remove completed row from [§1](#1-backlog) and update [`IMPLEMENTED.md`](./IMPLEMENTED.md).
+## 2. One-shot agent kickoff (copy-paste)
 
 ```text
-Read IMPLEMENTED.md (do not redo listed items).
-Execute R-15 only from IMPLEMENTATION_PROMPT.md §5.
-npm run build && npm test
-Update both docs when done.
+You are finishing ContextHub. Read docs/IMPLEMENTED.md — do NOT rebuild listed features.
+
+Open docs/IMPLEMENTATION_PROMPT.md §1 and complete P1 through P7 in ONE PR.
+
+Rules:
+- Follow SECURITY.md (safeHandler, validatePath, no secrets in logs).
+- npm run build && npm test must pass.
+- Add only tests + watch multi-root fix + doc updates.
+- When done: update IMPLEMENTED.md, then apply P8 (shrink IMPLEMENTATION_PROMPT.md to “complete”).
+
+Do not ask for confirmation between P1–P7. Execute all.
 ```
 
 ---
 
-## 5. Implementation prompts
+## 3. Implementation hints (minimal)
 
-### R-15 — Wire context bundle (partial code exists)
-
-**Exists:** `packages/mcp-server/src/context-bundle.ts` — `buildContextBundle`, `explainSymbol`. Handlers `getContextBundleMcp` / `explainSymbolMcp` in `index.ts` but **not** `server.tool(...)`.
-
-**Do:**
-
-1. Register MCP tools:
-```typescript
-server.tool('get_context_bundle', {
-  query: { type: 'string', optional: true },
-  path: { type: 'string', optional: true },
-  sessionId: { type: 'string', optional: true },
-  limit: { type: 'number', optional: true },
-}, safeHandler(async (args) => { /* require at least one of query|path|sessionId */ }));
-
-server.tool('explain_symbol', {
-  symbol: { type: 'string' },
-  path: { type: 'string', optional: true },
-}, safeHandler(explainSymbolMcp));
-```
-
-2. CLI `packages/cli/src/commands/context.ts` → print JSON from `buildContextBundle`.
-3. Document in `AGENT_SETUP.md`.
-
-**Done when:** Acceptance #13; Cursor MCP lists both tools.
-
----
-
-### R-16 — RRF hybrid query
-
-**File:** `packages/core/src/query-pipeline.ts`
+### P1 — Watch multi-root
 
 ```typescript
-function rrfMerge<T extends { id: string }>(
-  lists: Array<Array<T>>,
-  k = 60
-): Map<string, number> {
-  const scores = new Map<string, number>();
-  for (const list of lists) {
-    list.forEach((item, i) => {
-      scores.set(item.id, (scores.get(item.id) || 0) + 1 / (k + i + 1));
-    });
-  }
-  return scores;
-}
+import { loadConfig } from '@contexthub/core';
+
+const config = loadConfig(currentDir);
+const roots = config.roots ?? ['.'];
+// chokidar: watch each resolved root under repoPath, or single watcher with multiple globs
+// Reuse ContexthubIgnore per changed file (already in watch.ts)
 ```
 
-Merge ranked lists: semantic, keyword, graph-derived pseudo-hits, git pseudo-hits. Cap 50 candidates → top `limit`.
+### P2 — Hub graph fixture
 
-**Done when:** Acceptance #18.
+- Option A: committed JSON ~10k nodes (may be large — prefer generator in test).
+- Option B: test builds chain: `file:0` → `file:1` → … with 3 hub nodes with fan-in 50+.
 
----
-
-### R-17 — Local embeddings
-
-**File:** `packages/vector-engine/src/index.ts`
-
-| Mode | Behavior |
-|------|----------|
-| `local` | Hash + **bigram TF** weighting (default) |
-| `off` | Keyword-only degradation |
-| `transformers` | Optional lazy `@xenova/transformers` |
-
-`setup` must not require API keys.
-
----
-
-### R-18 — Tree-sitter
-
-**TS/JS/Py** WASM in `repo-parser`; fallback regex. 5s timeout/file.
-
----
-
-### R-19 — Operator UX
-
-| Deliverable | Path |
-|-------------|------|
-| `.contexthubignore` parser | `packages/core/src/contexthub-ignore.ts` |
-| Apply in | `watch`, `buildCodeGraph`, parser walk |
-| `contexthub doctor` | `packages/cli/src/commands/doctor.ts` |
-| `contexthub status` | `commands/status.ts` |
-| `contexthub benchmark` | `commands/benchmark.ts` |
-
-**doctor hard-fail:** `.contexthub` 0700, `.keyfile` 0600, memories decrypt, MCP resolves.
-
----
-
-### R-20 — Session / graph delta
-
-MCP: `what_changed_since_session({ sessionId })`, `diff_code_graph({ base?, head? })`.
-
-Store optional graph snapshot id in session metadata on `ensure_session`.
-
----
-
-### R-21 — Memory compact
-
-`archiveOldMemories(maxAgeDays)` → `.contexthub/archive/`. CLI `contexthub compact` merges prompt+response → `summary` unless tag `pinned`.
-
----
-
-### R-22 — MCP resources + prompts
-
-**File:** `packages/mcp-server/src/resources.ts`
-
-Resources: `contexthub://policy`, `contexthub://graph-stats`, `contexthub://report`.
-
-Prompts: `summarize-session`, `onboard-repo`, `pre-commit-review`.
-
----
-
-### R-23 — CI integration
-
-`contexthub ci` — non-interactive: verify setup, `update_knowledge_graph`, optional `GRAPH_REPORT` to `$GITHUB_STEP_SUMMARY`.
-
-`.github/actions/contexthub/action.yml` — PR blast-radius comment (max 20 files, no secrets).
-
----
-
-### R-24 — Multi-root config
-
-**Depends on R-26** — see below. Multiple `roots`, prefixed node ids (`pkg:core#file.ts`).
-
----
-
-### R-25 — Demo & comparison docs
-
-- `examples/demo-repo/`
-- `docs/BENCHMARKS.md` (from `contexthub benchmark` output)
-- `docs/COMPARISON_GRAPHIFY.md`
-- `docs/AIRGAP.md`
-
----
-
-### R-26 — Config loader (do before R-24)
-
-**Create** `packages/core/src/config.ts`:
+### P3 — Bundle latency
 
 ```typescript
-export interface ContexthubConfig {
-  roots?: string[];
-  query?: { rrfK?: number };
-  embeddings?: { mode?: 'local' | 'off' | 'transformers' };
-  graph?: { maxNodes?: number; reportPath?: string };
-  watch?: { debounceMs?: number; maxFilesPerBatch?: number };
-  memory?: { maxAgeDays?: number };
-}
-export function loadConfig(repoPath: string): ContexthubConfig;
+const t0 = Date.now();
+await buildContextBundle({ query: 'helper', repoPath: demoRepo }, ctx, vector, graph, git);
+assert.ok(Date.now() - t0 < 500); // or 1000 for CI
 ```
 
-Load `contexthub.config.js` via `createRequire`; validate numbers with `validateLimit`.
+### P4 — Doctor
+
+```bash
+tmpdir=$(mktemp -d); cd $tmpdir && git init
+npx contexthub setup   # or node path to cli
+npx contexthub doctor
+# expect exit 0
+```
+
+### P5 — RRF test
+
+Seed memories: one with unique token `xyzzy_arch_decision`. Query `xyzzy architecture`. Naive keyword-only may miss; semantic/graph should hit. Compare `runUnifiedQuery` vs a stub that only uses keyword branch.
+
+### P6 — Embeddings
+
+```typescript
+const ve = new VectorEngine(repoPath, 'local');
+// embed 3 memories with distinct content, search should rank best match first
+```
 
 ---
 
-### R-10 — 15+ languages
+## 4. Security (still apply)
 
-One PR per language: Ruby, Kotlin, Swift, PHP, C#, Scala, C/C++ — parser + fixture + test.
-
----
-
-### R-27 — Export memories (optional)
-
-`contexthub export-memories --out bundle.chub [--passphrase]` — scrypt + AES-256-GCM, no keyfile.
+- Tests use temp dirs; never commit `.contexthub/.keyfile` or `.auth-token`
+- Doctor test must not print token contents
+- Fixture paths repo-relative only
 
 ---
 
-## 6. Security (new work)
-
-- All new tools: `safeHandler`
-- `contexthubignore` must not allow escaping repo root
-- Doctor must not print `.auth-token` or `.keyfile` contents
-- PR Action comments: paths only, no memory content
-
----
-
-*MIT © Mayur Dattatray Patil*
+*After P8: roadmap complete — maintain features in `IMPLEMENTED.md` only.*
