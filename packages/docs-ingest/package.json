@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@contexthub/core": "^1.0.0",
@@ -16,5 +17,38 @@
   },
   "devDependencies": {
     "typescript": "^5.0.0"
-  }
+  },
+  "author": "Mayur Dattatray Patil",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iMayuuR/contexthub.git",
+    "directory": "packages/docs-ingest"
+  },
+  "bugs": {
+    "url": "https://github.com/iMayuuR/contexthub/issues"
+  },
+  "homepage": "https://github.com/iMayuuR/contexthub#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "contexthub",
+    "mcp",
+    "ai-memory",
+    "cursor",
+    "claude"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
 }

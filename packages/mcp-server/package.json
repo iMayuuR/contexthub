@@ -1,7 +1,7 @@
 {
   "name": "@contexthub/mcp-server",
   "version": "1.0.0",
-  "description": "ContextHub MCP server — encrypted memory and repo intelligence (stdio)",
+  "description": "ContextHub MCP server - encrypted memory and repo intelligence (stdio)",
   "author": "Mayur Dattatray Patil",
   "license": "MIT",
   "repository": {
@@ -42,5 +42,22 @@
   "devDependencies": {
     "@types/node": "^18.0.0",
     "typescript": "^5.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/iMayuuR/contexthub/issues"
+  },
+  "homepage": "https://github.com/iMayuuR/contexthub#readme",
+  "keywords": [
+    "contexthub",
+    "mcp",
+    "ai-memory",
+    "cursor",
+    "claude"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

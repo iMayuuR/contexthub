@@ -17,7 +17,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "!dist/__tests__"
   ],
   "scripts": {
     "build": "tsc",
@@ -35,5 +36,23 @@
   "devDependencies": {
     "@types/node": "^18.0.0",
     "typescript": "^5.0.0"
+  },
+  "author": "Mayur Dattatray Patil",
+  "bugs": {
+    "url": "https://github.com/iMayuuR/contexthub/issues"
+  },
+  "homepage": "https://github.com/iMayuuR/contexthub#readme",
+  "keywords": [
+    "contexthub",
+    "mcp",
+    "ai-memory",
+    "cursor",
+    "claude"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

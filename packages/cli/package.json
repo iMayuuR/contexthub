@@ -26,6 +26,7 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "!dist/__tests__",
     "README.md"
   ],
   "keywords": [
@@ -58,5 +59,11 @@
     "@types/inquirer": "^9.0.0",
     "@types/node": "^18.0.0",
     "typescript": "^5.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }
