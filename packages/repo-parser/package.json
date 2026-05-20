@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/repo-parser",
+  "name": "@imayuur/contexthub-repo-parser",
   "version": "1.0.0",
   "description": "Sandboxed repository code analysis for ContextHub",
   "license": "MIT",
@@ -27,11 +27,11 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/shared-types": "^1.0.0",
     "@repomix/tree-sitter-wasms": "^0.1.17",
     "glob": "^10.0.0",
     "tree-sitter-wasms": "^0.1.13",
-    "web-tree-sitter": "^0.26.9"
+    "web-tree-sitter": "^0.26.9",
+    "@imayuur/contexthub-shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

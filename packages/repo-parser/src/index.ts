@@ -1,8 +1,8 @@
-import type { ParsedFile, Symbol, ImportExport } from '@contexthub/shared-types';
+import type { ParsedFile, Symbol, ImportExport } from '@imayuur/contexthub-shared-types';
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
-import { MAX_FILES_PER_SCAN, MAX_INGEST_FILE_SIZE, ContexthubIgnore } from '@contexthub/core';
+import { MAX_FILES_PER_SCAN, MAX_INGEST_FILE_SIZE, ContexthubIgnore } from '@imayuur/contexthub-core';
 import { TreeSitterParser } from './tree-sitter';
 
 const SENSITIVE_FILE_PATTERNS = [

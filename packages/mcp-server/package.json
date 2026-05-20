@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/mcp-server",
+  "name": "@imayuur/contexthub-mcp-server",
   "version": "1.0.0",
   "description": "ContextHub MCP server - encrypted memory and repo intelligence (stdio)",
   "author": "Mayur Dattatray Patil",
@@ -26,18 +26,18 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "^1.0.0",
-    "@contexthub/git-integration": "^1.0.0",
-    "@contexthub/repo-parser": "^1.0.0",
-    "@contexthub/shared-types": "^1.0.0",
-    "@contexthub/skills": "^1.0.0",
-    "@contexthub/vector-engine": "^1.0.0",
-    "@contexthub/knowledge-graph": "^1.0.0",
-    "@contexthub/docs-ingest": "^1.0.0",
-    "@contexthub/plugin-pdf": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "glob": "^10.0.0",
-    "simple-git": "^3.0.0"
+    "simple-git": "^3.0.0",
+    "@imayuur/contexthub-core": "^1.0.0",
+    "@imayuur/contexthub-git-integration": "^1.0.0",
+    "@imayuur/contexthub-repo-parser": "^1.0.0",
+    "@imayuur/contexthub-shared-types": "^1.0.0",
+    "@imayuur/contexthub-skills": "^1.0.0",
+    "@imayuur/contexthub-vector-engine": "^1.0.0",
+    "@imayuur/contexthub-knowledge-graph": "^1.0.0",
+    "@imayuur/contexthub-docs-ingest": "^1.0.0",
+    "@imayuur/contexthub-plugin-pdf": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

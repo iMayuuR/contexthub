@@ -1,5 +1,5 @@
-import { ContextHubCore, SecurityManager } from '@contexthub/core';
-import type { Session, MemoryEntry } from '@contexthub/shared-types';
+import { ContextHubCore, SecurityManager } from '@imayuur/contexthub-core';
+import type { Session, MemoryEntry } from '@imayuur/contexthub-shared-types';
 
 // Base class for agent connectors
 export abstract class AgentConnector {

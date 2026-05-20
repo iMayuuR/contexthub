@@ -1,4 +1,4 @@
-import { ContextHubCore, SecurityManager } from '@contexthub/core';
+import { ContextHubCore, SecurityManager } from '@imayuur/contexthub-core';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { installAgentIntegrations } from '../agent-integrations/install';
@@ -65,7 +65,7 @@ module.exports = {
     console.log(`Configuration file created at ${configPath}`);
     console.log(`Memory storage initialized at ${contexthubDir}`);
     console.log('\nNext steps:');
-    console.log('  1. Add "@contexthub/core" as a devDependency to your package.json (if developing locally)');
+    console.log('  1. Add "@imayuur/contexthub-core" as a devDependency to your package.json (if developing locally)');
     console.log('  2. Run "contexthub start" to start the MCP server');
     console.log('  3. Use "contexthub memory" to manage memories');
   } catch (error) {

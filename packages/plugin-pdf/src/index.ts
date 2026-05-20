@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import pdfParse from 'pdf-parse';
-import { MAX_PDF_PAGES, MAX_PDF_SIZE_BYTES } from '@contexthub/core';
+import { MAX_PDF_PAGES, MAX_PDF_SIZE_BYTES } from '@imayuur/contexthub-core';
 
 export class PdfParser {
   /**

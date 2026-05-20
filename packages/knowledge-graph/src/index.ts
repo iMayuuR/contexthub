@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { RepoParser } from '@contexthub/repo-parser';
-import { SecurityManager, DEFAULT_QUERY_LIMIT, loadConfig } from '@contexthub/core';
-import type { CodeGraph, CodeGraphNode, CodeGraphEdge, ParsedFile, GraphDiff } from '@contexthub/shared-types';
+import { RepoParser } from '@imayuur/contexthub-repo-parser';
+import { SecurityManager, DEFAULT_QUERY_LIMIT, loadConfig } from '@imayuur/contexthub-core';
+import type { CodeGraph, CodeGraphNode, CodeGraphEdge, ParsedFile, GraphDiff } from '@imayuur/contexthub-shared-types';
 
 export class CodeGraphManager {
   private repoPath: string;

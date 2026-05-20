@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/shared-types",
+  "name": "@imayuur/contexthub-shared-types",
   "version": "1.0.0",
   "description": "Shared TypeScript types for ContextHub",
   "license": "MIT",

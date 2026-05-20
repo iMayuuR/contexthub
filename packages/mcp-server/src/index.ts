@@ -30,14 +30,14 @@ import {
   MAX_RELATED_SYMBOLS,
   MAX_MEMORIES_TOTAL,
   MAX_MEMORY_TAGS
-} from '@contexthub/core';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { RepoParser } from '@contexthub/repo-parser';
-import { GitIntegration } from '@contexthub/git-integration';
-import { SkillsManager } from '@contexthub/skills';
-import { CodeGraphManager, writeGraphReport } from '@contexthub/knowledge-graph';
-import { DocsIngester } from '@contexthub/docs-ingest';
-import type { MemoryEntry, Session } from '@contexthub/shared-types';
+} from '@imayuur/contexthub-core';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { RepoParser } from '@imayuur/contexthub-repo-parser';
+import { GitIntegration } from '@imayuur/contexthub-git-integration';
+import { SkillsManager } from '@imayuur/contexthub-skills';
+import { CodeGraphManager, writeGraphReport } from '@imayuur/contexthub-knowledge-graph';
+import { DocsIngester } from '@imayuur/contexthub-docs-ingest';
+import type { MemoryEntry, Session } from '@imayuur/contexthub-shared-types';
 import { getAgentPolicyMarkdown, AGENT_POLICY_VERSION } from './agent-policy';
 import {
   readActiveSession,
@@ -872,7 +872,7 @@ async function ingestDocs(paths?: string[]) {
 }
 
 async function ingestPdf(filePath: string) {
-  const { PdfParser } = await import('@contexthub/plugin-pdf');
+  const { PdfParser } = await import('@imayuur/contexthub-plugin-pdf');
   const sec = getSecurity();
   const safePath = sec.validatePath(filePath);
   

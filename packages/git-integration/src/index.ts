@@ -1,5 +1,5 @@
-import { ContextHubCore } from '@contexthub/core';
-import type { MemoryEntry } from '@contexthub/shared-types';
+import { ContextHubCore } from '@imayuur/contexthub-core';
+import type { MemoryEntry } from '@imayuur/contexthub-shared-types';
 import simpleGit, { SimpleGit } from 'simple-git';
 
 export class GitIntegration {

@@ -1,7 +1,7 @@
 import chalk from 'chalk';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { DocsIngester } from '@contexthub/docs-ingest';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { DocsIngester } from '@imayuur/contexthub-docs-ingest';
 
 export interface IngestDocsOptions {
   patterns?: string[];

@@ -9,7 +9,7 @@ const nodeRequire = createRequire(__filename);
 export function resolveMcpServerEntry(): string {
   let entry: string;
   try {
-    entry = nodeRequire.resolve('@contexthub/mcp-server');
+    entry = nodeRequire.resolve('@imayuur/contexthub-mcp-server');
   } catch {
     throw new Error(
       '@contexthub/mcp-server is not installed. Run: npm install @contexthub/cli'

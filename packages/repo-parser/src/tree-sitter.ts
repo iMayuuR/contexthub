@@ -1,4 +1,4 @@
-import { Symbol, ImportExport } from '@contexthub/shared-types';
+import { Symbol, ImportExport } from '@imayuur/contexthub-shared-types';
 
 export class TreeSitterParser {
   private parser: any;

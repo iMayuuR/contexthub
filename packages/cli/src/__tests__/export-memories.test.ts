@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore } from '@imayuur/contexthub-core';
 import { exportMemoriesCommand } from '../commands/export-memories';
 
 test('Export Memories Command', async (t) => {

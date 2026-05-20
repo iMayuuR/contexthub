@@ -1,7 +1,7 @@
 // Memory Engine for ContextHub
 // Implements advanced memory algorithms like forgetting curves, consolidation, etc.
 
-import type { MemoryEntry } from '@contexthub/shared-types';
+import type { MemoryEntry } from '@imayuur/contexthub-shared-types';
 
 export class MemoryEngine {
   /**

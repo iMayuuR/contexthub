@@ -8,7 +8,7 @@
 
 ```bash
 # Standard scope:
-npx @contexthub/cli setup
+npx @imayuur/contexthub setup
 
 # OR custom scope:
 npx @imayuur/contexthub setup

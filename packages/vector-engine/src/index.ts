@@ -1,4 +1,4 @@
-import type { VectorSearchResult, MemoryEntry } from '@contexthub/shared-types';
+import type { VectorSearchResult, MemoryEntry } from '@imayuur/contexthub-shared-types';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';

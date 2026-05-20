@@ -12,8 +12,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@contexthub/core": ["../core/dist"],
-      "@contexthub/shared-types": ["../shared-types/dist"]
+      "@imayuur/contexthub-core": ["../core/dist"],
+      "@imayuur/contexthub-shared-types": ["../shared-types/dist"]
     }
   },
   "include": ["src/**/*"]

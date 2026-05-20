@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { generateGraphReport, writeGraphReport } from '@contexthub/knowledge-graph';
-import { ContextHubCore } from '@contexthub/core';
+import { generateGraphReport, writeGraphReport } from '@imayuur/contexthub-knowledge-graph';
+import { ContextHubCore } from '@imayuur/contexthub-core';
 
 export interface ReportOptions {
   stdout?: boolean;
@@ -22,7 +22,7 @@ export async function reportCommand(options: ReportOptions = {}): Promise<void> 
   } catch {}
 
   try {
-    const { GitIntegration } = await import('@contexthub/git-integration');
+    const { GitIntegration } = await import('@imayuur/contexthub-git-integration');
     const core = new ContextHubCore(currentDir);
     const git = new GitIntegration(core, currentDir);
     const summary = await git.getGitSummary();

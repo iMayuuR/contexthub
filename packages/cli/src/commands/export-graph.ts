@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { SecurityManager, MAX_GRAPH_DISPLAY_NODES } from '@contexthub/core';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { SecurityManager, MAX_GRAPH_DISPLAY_NODES } from '@imayuur/contexthub-core';
 
 export interface ExportGraphOptions {
   output?: string;

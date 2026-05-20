@@ -1,4 +1,4 @@
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore } from '@imayuur/contexthub-core';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { log } from 'console';

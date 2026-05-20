@@ -3,10 +3,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as url from 'url';
 import chalk from 'chalk';
-import { ContextHubCore, SecurityManager, runUnifiedQuery, DASHBOARD_MAX_RECORDS, MAX_GRAPH_DISPLAY_NODES } from '@contexthub/core';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { GitIntegration } from '@contexthub/git-integration';
+import { ContextHubCore, SecurityManager, runUnifiedQuery, DASHBOARD_MAX_RECORDS, MAX_GRAPH_DISPLAY_NODES } from '@imayuur/contexthub-core';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { GitIntegration } from '@imayuur/contexthub-git-integration';
 
 export interface DashboardOptions {
   port?: string;

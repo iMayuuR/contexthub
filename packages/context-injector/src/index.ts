@@ -1,7 +1,7 @@
-import { ContextHubCore } from '@contexthub/core';
-import type { MemoryEntry } from '@contexthub/shared-types';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { RepoParser } from '@contexthub/repo-parser';
+import { ContextHubCore } from '@imayuur/contexthub-core';
+import type { MemoryEntry } from '@imayuur/contexthub-shared-types';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { RepoParser } from '@imayuur/contexthub-repo-parser';
 
 export class ContextInjector {
   private core: ContextHubCore;

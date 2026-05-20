@@ -14,7 +14,7 @@
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Session, MemoryEntry, ProjectMetadata } from '@contexthub/shared-types';
+import { Session, MemoryEntry, ProjectMetadata } from '@imayuur/contexthub-shared-types';
 import { SecurityManager } from './security';
 
 // Simple in-process async mutex for file locking

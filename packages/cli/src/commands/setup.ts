@@ -9,7 +9,7 @@
  * - ADDED: Auth token generation for MCP server
  */
 
-import { ContextHubCore, SecurityManager } from "@contexthub/core";
+import { ContextHubCore, SecurityManager } from "@imayuur/contexthub-core";
 import { join } from "path";
 import { existsSync, writeFileSync } from "fs";
 import { spawn } from "child_process";

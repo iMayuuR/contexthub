@@ -22,7 +22,7 @@ If ContextHub is not yet running in this workspace, execute the following non-in
 
 ```bash
 # Standard scope:
-npx -y @contexthub/cli setup
+npx -y @imayuur/contexthub setup
 
 # OR custom scope:
 npx -y @imayuur/contexthub setup

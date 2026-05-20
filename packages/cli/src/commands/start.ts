@@ -12,7 +12,7 @@
 import { spawn } from 'child_process';
 import { join } from 'path';
 import { existsSync, writeFileSync, unlinkSync, readFileSync } from 'fs';
-import { SecurityManager } from '@contexthub/core';
+import { SecurityManager } from '@imayuur/contexthub-core';
 import { resolveMcpServerEntry } from '../resolve-mcp-server';
 
 export async function startServer(port: number): Promise<void> {

@@ -3,7 +3,7 @@ import * as assert from 'node:assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { CodeGraphManager } from '../index';
-import type { CodeGraph } from '@contexthub/shared-types';
+import type { CodeGraph } from '@imayuur/contexthub-shared-types';
 
 describe('CodeGraphManager', () => {
   const repoPath = path.resolve(process.cwd());

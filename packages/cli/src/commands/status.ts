@@ -1,6 +1,6 @@
-import { ContextHubCore } from '@contexthub/core';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { GitIntegration } from '@contexthub/git-integration';
+import { ContextHubCore } from '@imayuur/contexthub-core';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { GitIntegration } from '@imayuur/contexthub-git-integration';
 import chalk from 'chalk';
 
 export async function statusCommand(): Promise<void> {

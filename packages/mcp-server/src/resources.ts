@@ -1,11 +1,11 @@
 import { getAgentPolicyMarkdown } from './agent-policy';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // Helper to get ContextHubCore or DB info if needed
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore } from '@imayuur/contexthub-core';
 
 export function registerResourcesAndPrompts(server: any) {
   // ── Resources ────────────────────────────────────────────────────────────

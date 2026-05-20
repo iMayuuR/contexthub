@@ -1,4 +1,4 @@
-import { ContextHubCore } from '@contexthub/core';
+import { ContextHubCore } from '@imayuur/contexthub-core';
 import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';

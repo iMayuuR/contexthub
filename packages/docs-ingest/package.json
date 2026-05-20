@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/docs-ingest",
+  "name": "@imayuur/contexthub-docs-ingest",
   "version": "1.0.0",
   "description": "Markdown document ingest engine for ContextHub",
   "main": "dist/index.js",
@@ -10,10 +10,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "^1.0.0",
-    "@contexthub/vector-engine": "^1.0.0",
-    "@contexthub/knowledge-graph": "^1.0.0",
-    "glob": "^10.0.0"
+    "glob": "^10.0.0",
+    "@imayuur/contexthub-core": "^1.0.0",
+    "@imayuur/contexthub-vector-engine": "^1.0.0",
+    "@imayuur/contexthub-knowledge-graph": "^1.0.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

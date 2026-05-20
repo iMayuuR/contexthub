@@ -1,5 +1,5 @@
 import type { ContextHubCore } from './index';
-import type { MemoryEntry, VectorSearchResult, CodeGraphNode } from '@contexthub/shared-types';
+import type { MemoryEntry, VectorSearchResult, CodeGraphNode } from '@imayuur/contexthub-shared-types';
 import * as path from 'path';
 
 export interface UnifiedQueryResult {

@@ -44,7 +44,7 @@ for (const dir of packageDirs) {
     const oldName = pkg.name;
     const baseName = oldName.replace('@contexthub/', '');
     
-    // Map '@contexthub/cli' directly to '@scope/contexthub' so they can run: npx @scope/contexthub
+    // Map '@imayuur/contexthub' directly to '@scope/contexthub' so they can run: npx @scope/contexthub
     const newName = baseName === 'cli' 
       ? `${targetScope}/contexthub` 
       : `${targetScope}/contexthub-${baseName}`;

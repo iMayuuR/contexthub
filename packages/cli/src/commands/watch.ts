@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SecurityManager, ContexthubIgnore, loadConfig } from '@contexthub/core';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { RepoParser } from '@contexthub/repo-parser';
-import { DocsIngester } from '@contexthub/docs-ingest';
+import { SecurityManager, ContexthubIgnore, loadConfig } from '@imayuur/contexthub-core';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { RepoParser } from '@imayuur/contexthub-repo-parser';
+import { DocsIngester } from '@imayuur/contexthub-docs-ingest';
 
 export interface WatchOptions {
   debounce?: string;

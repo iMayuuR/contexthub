@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import * as path from 'path';
-import { ContextHubCore } from '@contexthub/core';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { GitIntegration } from '@contexthub/git-integration';
-import { buildContextBundle } from '@contexthub/mcp-server';
+import { ContextHubCore } from '@imayuur/contexthub-core';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { GitIntegration } from '@imayuur/contexthub-git-integration';
+import { buildContextBundle } from '@imayuur/contexthub-mcp-server';
 
 test('get_context_bundle Latency Integration Test', async (t) => {
   const repoPath = path.resolve(__dirname, '../../../../'); // root of workspace

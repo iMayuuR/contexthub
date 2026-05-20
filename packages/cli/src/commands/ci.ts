@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SecurityManager, ContextHubCore } from '@contexthub/core';
-import { CodeGraphManager, writeGraphReport } from '@contexthub/knowledge-graph';
+import { SecurityManager, ContextHubCore } from '@imayuur/contexthub-core';
+import { CodeGraphManager, writeGraphReport } from '@imayuur/contexthub-knowledge-graph';
 import chalk from 'chalk';
 
 export async function ciCommand(): Promise<void> {
@@ -60,7 +60,7 @@ export async function ciCommand(): Promise<void> {
     
     let gitBranch: string | undefined;
     try {
-      const { GitIntegration } = await import('@contexthub/git-integration');
+      const { GitIntegration } = await import('@imayuur/contexthub-git-integration');
       const git = new GitIntegration(core, currentDir);
       const summary = await git.getGitSummary();
       gitBranch = summary.currentBranch;

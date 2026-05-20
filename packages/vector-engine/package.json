@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/vector-engine",
+  "name": "@imayuur/contexthub-vector-engine",
   "version": "1.0.0",
   "description": "Embeddings and semantic search for ContextHub",
   "license": "MIT",
@@ -25,7 +25,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/shared-types": "^1.0.0"
+    "@imayuur/contexthub-shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

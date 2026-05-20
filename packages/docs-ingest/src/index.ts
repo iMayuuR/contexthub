@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { ContextHubCore, SecurityManager } from '@contexthub/core';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { ContextHubCore, SecurityManager } from '@imayuur/contexthub-core';
 
 export class DocsIngester {
   private repoPath: string;

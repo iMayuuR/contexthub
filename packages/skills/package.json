@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/skills",
+  "name": "@imayuur/contexthub-skills",
   "version": "1.0.0",
   "description": "Built-in skills for ContextHub MCP server",
   "license": "MIT",
@@ -25,10 +25,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "^1.0.0",
-    "@contexthub/shared-types": "^1.0.0",
     "front-matter": "^4.0.2",
-    "gray-matter": "^4.0.0"
+    "gray-matter": "^4.0.0",
+    "@imayuur/contexthub-core": "^1.0.0",
+    "@imayuur/contexthub-shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

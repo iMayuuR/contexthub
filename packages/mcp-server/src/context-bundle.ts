@@ -6,11 +6,11 @@
  * Capped at 256KB to stay within LLM context limits.
  */
 
-import { ContextHubCore, SecurityManager, runUnifiedQuery, MAX_QUERY_LIMIT } from '@contexthub/core';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { GitIntegration } from '@contexthub/git-integration';
-import type { MemoryEntry } from '@contexthub/shared-types';
+import { ContextHubCore, SecurityManager, runUnifiedQuery, MAX_QUERY_LIMIT } from '@imayuur/contexthub-core';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { GitIntegration } from '@imayuur/contexthub-git-integration';
+import type { MemoryEntry } from '@imayuur/contexthub-shared-types';
 
 const MAX_BUNDLE_BYTES = 256 * 1024; // 256KB
 

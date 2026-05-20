@@ -1,6 +1,6 @@
-import { ContextHubCore } from '@contexthub/core';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { VectorEngine } from '@contexthub/vector-engine';
+import { ContextHubCore } from '@imayuur/contexthub-core';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
 import chalk from 'chalk';
 
 export async function benchmarkCommand(): Promise<void> {

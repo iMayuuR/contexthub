@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert';
 import * as path from 'path';
 import * as fs from 'fs';
-import { VectorEngine } from '@contexthub/vector-engine';
-import type { MemoryEntry } from '@contexthub/shared-types';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import type { MemoryEntry } from '@imayuur/contexthub-shared-types';
 
 test('Local Offline Bigram TF-IDF Embeddings Test', async (t) => {
   const tempDir = path.resolve(__dirname, '../../../../temp-embeddings-smoke-repo');

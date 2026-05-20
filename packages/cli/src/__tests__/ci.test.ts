@@ -2,7 +2,7 @@ import { test, describe, before, after } from 'node:test';
 import * as assert from 'node:assert';
 import * as path from 'path';
 import * as fs from 'fs';
-import { SecurityManager } from '@contexthub/core';
+import { SecurityManager } from '@imayuur/contexthub-core';
 import { ciCommand } from '../commands/ci';
 import { blastRadiusCommand } from '../commands/blast-radius';
 

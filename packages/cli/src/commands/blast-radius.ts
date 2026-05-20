@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
 import chalk from 'chalk';
 
 export async function blastRadiusCommand(files: string[]): Promise<void> {

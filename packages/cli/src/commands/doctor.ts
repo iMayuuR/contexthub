@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SecurityManager, ContextHubCore } from '@contexthub/core';
+import { SecurityManager, ContextHubCore } from '@imayuur/contexthub-core';
 import chalk from 'chalk';
 
 export async function doctorCommand(): Promise<void> {
@@ -55,7 +55,7 @@ export async function doctorCommand(): Promise<void> {
       // 5. MCP Resolution
       // For now just check if the mcp-server package is available
       try {
-        require.resolve('@contexthub/mcp-server');
+        require.resolve('@imayuur/contexthub-mcp-server');
         check('MCP server resolves', true);
       } catch {
         check('MCP server resolves', false, 'Could not resolve @contexthub/mcp-server');

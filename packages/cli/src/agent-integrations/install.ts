@@ -8,8 +8,8 @@ import {
 } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
-import { buildSkillMarkdown } from '@contexthub/mcp-server';
-import type { SecurityManager } from '@contexthub/core';
+import { buildSkillMarkdown } from '@imayuur/contexthub-mcp-server';
+import type { SecurityManager } from '@imayuur/contexthub-core';
 import {
   AGENT_POLICY_MARKER,
   buildAgentsMdSection,
@@ -80,7 +80,7 @@ function mergeMarkdownSection(filePath: string, section: string): void {
 function writeCursorMcp(mcpPath: string): void {
   const contexthubServer = {
     command: 'npx',
-    args: ['-y', '@contexthub/cli', 'start'],
+    args: ['-y', '@imayuur/contexthub', 'start'],
   };
 
   let config: { mcpServers?: Record<string, unknown> } = { mcpServers: {} };

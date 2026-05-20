@@ -51,7 +51,7 @@ async function main() {
     let coreMod;
     let secMod;
     try {
-      coreMod = require('@contexthub/core');
+      coreMod = require('@imayuur/contexthub-core');
     } catch {
       process.exit(0);
     }

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { SecurityManager } from '@contexthub/core';
+import { SecurityManager } from '@imayuur/contexthub-core';
 
 export interface ActiveSessionState {
   sessionId: string;

@@ -1,8 +1,8 @@
-import { ContextHubCore } from '@contexthub/core';
-import { VectorEngine } from '@contexthub/vector-engine';
-import { CodeGraphManager } from '@contexthub/knowledge-graph';
-import { GitIntegration } from '@contexthub/git-integration';
-import { buildContextBundle } from '@contexthub/mcp-server';
+import { ContextHubCore } from '@imayuur/contexthub-core';
+import { VectorEngine } from '@imayuur/contexthub-vector-engine';
+import { CodeGraphManager } from '@imayuur/contexthub-knowledge-graph';
+import { GitIntegration } from '@imayuur/contexthub-git-integration';
+import { buildContextBundle } from '@imayuur/contexthub-mcp-server';
 
 export interface ContextOptions {
   query?: string;

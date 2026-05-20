@@ -1,5 +1,5 @@
 {
-  "name": "@contexthub/cli",
+  "name": "@imayuur/contexthub",
   "version": "1.0.0",
   "description": "ContextHub MCP server launcher — setup, start, stop, and memory management",
   "author": "Mayur Dattatray Patil",
@@ -43,17 +43,17 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@contexthub/core": "^1.0.0",
-    "@contexthub/mcp-server": "^1.0.0",
-    "@contexthub/shared-types": "^1.0.0",
-    "@contexthub/vector-engine": "^1.0.0",
-    "@contexthub/knowledge-graph": "^1.0.0",
-    "@contexthub/docs-ingest": "^1.0.0",
-    "@contexthub/git-integration": "^1.0.0",
     "chalk": "^5.0.0",
     "commander": "^10.0.0",
     "inquirer": "^9.0.0",
-    "ora": "^6.0.0"
+    "ora": "^6.0.0",
+    "@imayuur/contexthub-core": "^1.0.0",
+    "@imayuur/contexthub-mcp-server": "^1.0.0",
+    "@imayuur/contexthub-shared-types": "^1.0.0",
+    "@imayuur/contexthub-vector-engine": "^1.0.0",
+    "@imayuur/contexthub-knowledge-graph": "^1.0.0",
+    "@imayuur/contexthub-docs-ingest": "^1.0.0",
+    "@imayuur/contexthub-git-integration": "^1.0.0"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.0",

@@ -1,5 +1,5 @@
 {
-  "name": "contexthub",
+  "name": "contexthub-monorepo",
   "version": "0.1.0",
   "description": "ContextHub - persistent AI memory + context orchestration layer for coding agents",
   "author": "Mayur Dattatray Patil",

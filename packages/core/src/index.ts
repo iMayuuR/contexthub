@@ -1,6 +1,6 @@
 import { MemoryStorage } from './memory-storage';
 import { SecurityManager } from './security';
-import type { Session, MemoryEntry, ProjectMetadata } from '@contexthub/shared-types';
+import type { Session, MemoryEntry, ProjectMetadata } from '@imayuur/contexthub-shared-types';
 
 export { SecurityManager } from './security';
 export { runUnifiedQuery, UnifiedQueryResult } from './query-pipeline';

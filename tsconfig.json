@@ -11,16 +11,16 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@contexthub/core": ["packages/core/dist"],
-      "@contexthub/shared-types": ["packages/shared-types/dist"],
-      "@contexthub/mcp-server": ["packages/mcp-server/dist"],
-      "@contexthub/cli": ["packages/cli/dist"],
-      "@contexthub/vector-engine": ["packages/vector-engine/dist"],
-      "@contexthub/repo-parser": ["packages/repo-parser/dist"],
-      "@contexthub/git-integration": ["packages/git-integration/dist"],
-      "@contexthub/skills": ["packages/skills/dist"],
-      "@contexthub/memory-engine": ["packages/memory-engine/dist"],
-      "@contexthub/context-injector": ["packages/context-injector/dist"]
+      "@imayuur/contexthub-core": ["packages/core/dist"],
+      "@imayuur/contexthub-shared-types": ["packages/shared-types/dist"],
+      "@imayuur/contexthub-mcp-server": ["packages/mcp-server/dist"],
+      "@imayuur/contexthub": ["packages/cli/dist"],
+      "@imayuur/contexthub-vector-engine": ["packages/vector-engine/dist"],
+      "@imayuur/contexthub-repo-parser": ["packages/repo-parser/dist"],
+      "@imayuur/contexthub-git-integration": ["packages/git-integration/dist"],
+      "@imayuur/contexthub-skills": ["packages/skills/dist"],
+      "@imayuur/contexthub-memory-engine": ["packages/memory-engine/dist"],
+      "@imayuur/contexthub-context-injector": ["packages/context-injector/dist"]
     }
   },
   "files": [],
