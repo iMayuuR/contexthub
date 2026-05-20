@@ -1,6 +1,6 @@
 {
   "name": "@imayuur/contexthub-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Core ContextHub engine — encrypted memory and security",
   "license": "MIT",
   "repository": {
@@ -27,7 +27,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@imayuur/contexthub-shared-types": "^1.0.0"
+    "@imayuur/contexthub-shared-types": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

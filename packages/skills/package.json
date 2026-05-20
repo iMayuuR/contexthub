@@ -1,6 +1,6 @@
 {
   "name": "@imayuur/contexthub-skills",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Built-in skills for ContextHub MCP server",
   "license": "MIT",
   "repository": {
@@ -27,8 +27,8 @@
   "dependencies": {
     "front-matter": "^4.0.2",
     "gray-matter": "^4.0.0",
-    "@imayuur/contexthub-core": "^1.0.0",
-    "@imayuur/contexthub-shared-types": "^1.0.0"
+    "@imayuur/contexthub-core": "^1.0.1",
+    "@imayuur/contexthub-shared-types": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

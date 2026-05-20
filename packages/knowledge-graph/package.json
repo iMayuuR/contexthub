@@ -1,6 +1,6 @@
 {
   "name": "@imayuur/contexthub-knowledge-graph",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Code knowledge graph builder and query engine for ContextHub",
   "license": "MIT",
   "repository": {
@@ -27,9 +27,9 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@imayuur/contexthub-shared-types": "^1.0.0",
-    "@imayuur/contexthub-core": "^1.0.0",
-    "@imayuur/contexthub-repo-parser": "^1.0.0"
+    "@imayuur/contexthub-shared-types": "^1.0.1",
+    "@imayuur/contexthub-core": "^1.0.1",
+    "@imayuur/contexthub-repo-parser": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
