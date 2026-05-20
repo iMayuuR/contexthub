@@ -94,12 +94,12 @@
     <!-- INSTALL -->
     <section class="cli-section" id="install">
       <h2 class="section-title">~/install<span class="cursor-blink">_</span></h2>
-      <p class="section-lead">Spin up the MCP server in your repo. Setup uses the <code>@contexthub/cli</code> launcher — that package starts the server; agents talk to it over MCP, not the shell.</p>
+      <p class="section-lead">Spin up the MCP server in your repo. Setup uses the <code>@imayuur/contexthub</code> launcher — that package starts the server; agents talk to it over MCP, not the shell.</p>
 
       <h3 class="subsection-title">&gt; Recommended (any project)</h3>
-      <div class="cli-block copy-block" data-copy="npx @contexthub/cli setup">
+      <div class="cli-block copy-block" data-copy="npx @imayuur/contexthub setup">
         <p class="comment"># Encrypted storage + background MCP server</p>
-        <p class="code">npx @contexthub/cli setup</p>
+        <p class="code">npx @imayuur/contexthub setup</p>
         <button type="button" class="copy-btn" aria-label="Copy command">copy</button>
       </div>
 
@@ -121,9 +121,9 @@
       </ul>
 
       <h3 class="subsection-title">&gt; Point your agent at the server</h3>
-      <div class="cli-block copy-block" data-copy="npx @contexthub/cli start">
+      <div class="cli-block copy-block" data-copy="npx @imayuur/contexthub start">
         <p class="comment"># MCP stdio entrypoint (Cursor / Claude Code config)</p>
-        <p class="code">npx @contexthub/cli start</p>
+        <p class="code">npx @imayuur/contexthub start</p>
         <button type="button" class="copy-btn" aria-label="Copy command">copy</button>
       </div>
     </section>
@@ -308,12 +308,12 @@
     <!-- SECURITY -->
     <section class="cli-section" id="security">
       <h2 class="section-title">~/security<span class="cursor-blink">_</span></h2>
-      <p class="section-lead">22/22 audit findings remediated · 24/24 security tests passed · 0 npm vulnerabilities.</p>
+      <p class="section-lead">26/26 audit findings remediated · 38/38 security tests passed · 0 npm vulnerabilities.</p>
 
       <div class="stats-row">
         <div class="stat-card"><span class="stat-value">AES-256</span><span class="stat-label">Encryption at rest</span></div>
-        <div class="stat-card"><span class="stat-value">22/22</span><span class="stat-label">Findings fixed</span></div>
-        <div class="stat-card"><span class="stat-value">24/24</span><span class="stat-label">Tests passed</span></div>
+        <div class="stat-card"><span class="stat-value">26/26</span><span class="stat-label">Findings fixed</span></div>
+        <div class="stat-card"><span class="stat-value">38/38</span><span class="stat-label">Tests passed</span></div>
         <div class="stat-card"><span class="stat-value">0</span><span class="stat-label">npm vulns</span></div>
       </div>
 
@@ -356,8 +356,8 @@
       <p class="section-lead">Connect Claude Code, Cursor, or any MCP client via stdio transport.</p>
 
       <h3 class="subsection-title">&gt; 1. Initialize</h3>
-      <div class="cli-block copy-block" data-copy="npx -y @contexthub/cli setup">
-        <p class="code">npx -y @contexthub/cli setup</p>
+      <div class="cli-block copy-block" data-copy="npx -y @imayuur/contexthub setup">
+        <p class="code">npx -y @imayuur/contexthub setup</p>
         <button type="button" class="copy-btn" aria-label="Copy">copy</button>
       </div>
 
@@ -370,7 +370,7 @@
       <h3 class="subsection-title">&gt; 3. Cursor MCP config</h3>
       <div class="cli-block">
         <p class="comment"># Name: contexthub · Type: command</p>
-        <p class="code">npx @contexthub/cli start</p>
+        <p class="code">npx @imayuur/contexthub start</p>
         <p class="comment"># Env: CONTEXTHUB_TOKEN=&lt;your-auth-token&gt;</p>
       </div>
 
@@ -379,7 +379,7 @@
   "mcpServers": {
     "contexthub": {
       "command": "npx",
-      "args": ["@contexthub/cli", "start"],
+      "args": ["@imayuur/contexthub", "start"],
       "env": { "CONTEXTHUB_TOKEN": "&lt;your-auth-token&gt;" }
     }
   }
