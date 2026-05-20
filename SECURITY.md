@@ -1,23 +1,20 @@
 # 🔒 ContextHub Security Report
 
-> **Scan Date:** 20 May 2026 | **Version:** 1.0.0-hardened | **Status:** ✅ All Clear
+> **Last doc review:** 20 May 2026 (reconciled with current codebase) | **Version:** 1.0.0-hardened | **Status:** ✅ Controls verified — read **MCP Server Security** and **Threat modeling §4** below for the accurate trust model.
 
 ---
 
 ## Executive Summary
 
-ContextHub has undergone a **comprehensive three-pass security audit** covering all **61 source files** across **14 packages** (~8,800 lines of TypeScript). A total of **26 security findings** were identified and remediated — including 3 Critical, 5 High, 10 Medium, and 8 Low severity issues. The codebase is production-hardened with defense-in-depth protections at every layer.
+ContextHub underwent a **structured security audit** across the monorepo (`packages/*`, MCP server, CLI). Historical findings (**26**) were tracked to remediation; the codebase continues to grow — **line/file counts are not re-audited on every commit**. Defense in depth remains: **encryption at rest**, **input validation**, **path boundary checks**, **redaction**, **safe MCP error handling**, and **localhost-only dashboard**.
 
 | Metric | Value |
 |--------|-------|
-| Files Audited | 61 source files, 4 config files |
-| Packages Scanned | **14 / 14 (all packages)** |
-| Lines of Code | ~8,800 TypeScript |
-| Findings Identified | 26 total |
-| Findings Remediated | **26 / 26 (100%)** |
-| npm Vulnerabilities | **0** |
-| Security Tests | **38 / 38 passed** |
-| Outdated Dependencies | Advisory-only (`@types/node`, `glob`) — no CVEs |
+| Scope | All published workspaces + CLI + MCP + tests |
+| Findings (historical) | 26 identified → 26 remediated (tracked IDs below) |
+| npm Vulnerabilities | **0** (run `npm audit` at repo root) |
+| Automated tests | Run **`npm ci` then `npm test`** for current pass/fail (core, CLI, knowledge-graph, repo-parser, integration smoke) |
+| Outdated Dependencies | Advisory-only (`@types/node`, `glob`, etc.) — no known CVEs blocking |
 
 ---
 
@@ -87,22 +84,23 @@ ContextHub **automatically detects and redacts** sensitive data before storage:
 
 | Protection | Details |
 |------------|---------|
-| **Error sanitization** | No stack traces or internal paths exposed |
-| **Auth tokens** | Optional HMAC-based authentication via `CONTEXTHUB_TOKEN` |
-| **Timing-safe comparison** | Token verification uses SHA-256 hash comparison |
-| **Transport** | stdio-only (no HTTP exposure by default) |
-| **All tools wrapped** | `safeHandler()` catches and sanitizes every error |
-| **Session state isolation** | Per-session file-locked state with cleanup on exit |
+| **Error sanitization** | No stack traces or internal paths exposed (`safeHandler` on tools) |
+| **Transport** | **stdio only** — no TCP listener for MCP; attack surface is the **host OS user** who launches the server |
+| **Auth model (important)** | **`verifyAuthToken()` is not invoked on MCP stdio requests.** The MCP protocol here does not carry a per-call token; any process that can run `node …/mcp-server` with your repo as `cwd` can call tools as **you**. Mitigation: run only trusted MCP clients (e.g. Cursor), keep repo permissions tight, do not share your user session. |
+| **Token file + env** | `.contexthub/.auth-token` is generated at setup; `contexthub start` may load it into `CONTEXTHUB_TOKEN` for **tooling that reads env** — this does **not** replace a per-message MCP auth layer (not implemented). |
+| **Dashboard auth (separate)** | Local **HTTP** dashboard compares the request token to the stored `.auth-token` file (string equality on file contents for the happy path; `SecurityManager.verifyAuthToken` uses **SHA-256 digests + `timingSafeEqual`** when that API is used). |
+| **All tools wrapped** | `safeHandler()` catches and sanitizes handler errors |
+| **Session state** | Active session file + cleanup on `end_session` |
 
 ### 🌐 Dashboard Security
 
 | Protection | Details |
 |------------|---------|
-| **Localhost-only binding** | Server binds to `127.0.0.1` only — no LAN/internet exposure |
-| **Token-gated API** | All `/api/*` endpoints require valid `CONTEXTHUB_TOKEN` header |
-| **CORS restricted** | Access-Control headers set; no wildcard origins for API routes |
-| **No persistent server** | Dashboard is on-demand only — starts and stops with CLI command |
-| **CDN integrity** | External JS libraries loaded from versioned CDN URLs (vis-network, marked) |
+| **Localhost-only binding** | Server binds to **`127.0.0.1`** only — not `0.0.0.0` |
+| **Token-gated API** | When `.contexthub/.auth-token` exists, **`/api/*`** requires matching `CONTEXTHUB_TOKEN` / `Authorization: Bearer` / `contexthub_token` header (see `packages/cli/src/commands/dashboard.ts`) |
+| **CORS (actual behavior)** | Responses set **`Access-Control-Allow-Origin: *`** for simplicity. Because the server is **loopback-only**, remote browsers cannot reach it; still **do not** tunnel or expose the port publicly. |
+| **No persistent server** | Dashboard starts only when you run `contexthub dashboard` |
+| **Third-party scripts (CDN)** | **`marked`** and **`vis-network`** are loaded from public CDNs (**no SRI `integrity=` attributes** in the current HTML). **Mitigation:** localhost binding limits who can load the page; for stricter supply-chain control, **vendor** these assets or add **Subresource Integrity** (recommended follow-up). |
 
 ### ⚙️ Process Security
 
@@ -148,9 +146,11 @@ For corporate security teams, compliance officers, and IT administrators, instal
 - **Threat:** An attacker gaining access to the computer's storage media (or local malware processes) reading plaintext memory or code topology cache.
 - **Mitigation:** Memory storage utilizes cryptographically secure **AES-256-GCM encryption at rest**. The passphrase key is dynamically generated on setup with unique per-repo salts, stored locally with owner-only access permissions (`0600`).
 
-#### 4. Authorization & Malicious Process Isolation
-- **Threat:** Another local script or process on the user's PC query tools or inspect the developer's knowledge base.
-- **Mitigation:** The MCP server stdio channel and dashboard API routes are protected by a cryptographically strong **HMAC-SHA256 Token**. Only clients presenting the active `CONTEXTHUB_TOKEN` header are authorized to invoke MCP tools or endpoints.
+#### 4. Authorization & Local Process Model
+- **Threat:** Another **local** process acting as the same OS user could spawn the MCP server or hit the dashboard.
+- **MCP (stdio):** There is **no per-invocation token check** on the MCP stdio channel in this codebase. **Trust boundary = the user account** running the IDE / CLI. Use disk encryption, screen lock, and least-privilege user accounts for shared machines.
+- **Dashboard (HTTP on 127.0.0.1):** When `.auth-token` exists, **`/api/*`** requires the same token in headers; the main HTML route may still be reachable without the token depending on path checks — treat the UI as **sensitive** and keep the port local-only.
+- **Token crypto:** `SecurityManager.generateAuthToken()` / `verifyAuthToken()` implement HMAC-style issuance and **constant-time–style** compare via fixed-length SHA-256 digests (`timingSafeEqual`) for verification **when that path is used** (see core implementation).
 
 ---
 
@@ -168,7 +168,7 @@ For corporate security teams, compliance officers, and IT administrators, instal
 
 | ID | Finding | Risk | Fix |
 |----|---------|------|-----|
-| H-01 | No authentication on MCP server | Unauthorized memory access | **HMAC auth token support** |
+| H-01 | No authentication on MCP server | Any local process as same user could use stdio MCP | **Documented model:** stdio MCP = OS-user trust; **dashboard** uses `.auth-token` + headers; optional env for clients — **not** per-message MCP auth |
 | H-02 | All data stored in plaintext JSON | Data exposure if disk accessed | **AES-256-GCM encryption** |
 | H-03 | Race conditions in file I/O | Data corruption | **Mutex + atomic writes** |
 | H-04 | Full codebase exposed via repo-parser | IP/secret leakage | **File limits + sensitive exclusion** |
@@ -206,6 +206,8 @@ For corporate security teams, compliance officers, and IT administrators, instal
 
 ## Test Results
 
+> **Note:** The checklist below reflects **intended coverage**. Authoritative status: run **`npm ci && npm test`** at the repository root (CI runs build + workspace tests + `tests/integration/smoke.sh`).
+
 ```
 CLI Tests (8/8 passed):
   ✔ ciCommand executes successfully and writes report
@@ -237,7 +239,7 @@ Repo Parser Tests (13/13 passed):
   ✔ TypeScript, Python, Go, Rust, Java, Ruby,
     PHP, C#, Swift, Kotlin, Scala, C++ fixtures
 
-RESULT: 38/38 PASSED — ALL GREEN ✅
+RESULT: All listed suites green when CI last aligned — verify locally with `npm test`
 ```
 
 ---
@@ -267,6 +269,7 @@ Outdated packages (advisory-only, no CVEs):
 - Sanitizes all error messages (no stack traces leaked)
 - Excludes `.env`, `.pem`, `.key` files from scanning
 - Binds dashboard to localhost only — never exposed to network
+- **MCP stdio:** tools are invoked by trusted local clients under **your OS user** — there is no separate per-message MCP token in this implementation (see architecture section)
 
 ### 🔑 Recommended Configuration
 
@@ -276,7 +279,8 @@ ls -la .contexthub/
 # Should show: drwx------ (700) for directory
 # Should show: -rw------- (600) for files
 
-# 2. Enable MCP authentication (optional but recommended)
+# 2. Align Cursor / env with setup (recommended)
+# Matches `.contexthub/.auth-token` — used by clients and dashboard API; does NOT add per-call MCP stdio auth
 export CONTEXTHUB_TOKEN=your-secret-token
 
 # 3. Provide your own encryption key (optional)
@@ -315,7 +319,8 @@ rm -rf .contexthub
 | Error handling (OWASP) | ✅ No information disclosure |
 | Dependency hygiene | ✅ 0 npm vulnerabilities |
 | Secure defaults | ✅ Encryption on by default |
-| Localhost-only services | ✅ Dashboard & MCP bound to 127.0.0.1 |
+| Localhost-only HTTP | ✅ Dashboard binds to `127.0.0.1` only |
+| MCP transport | ✅ stdio (no TCP listener); **not** “bound to 127.0.0.1” — IPC inherits OS user trust |
 
 ---
 
