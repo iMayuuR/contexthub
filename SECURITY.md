@@ -118,6 +118,42 @@ ContextHub **automatically detects and redacts** sensitive data before storage:
 
 ---
 
+## Corporate Policy Compliance & Threat Assessment
+
+For corporate security teams, compliance officers, and IT administrators, installing and running ContextHub has been audited against standard enterprise cybersecurity policies. 
+
+### 🏢 Corporate Cyber Policy Fitment
+
+| Cyber Threat Standard / Policy | Alignment Status | Implementation Details |
+|--------------------------------|------------------|------------------------|
+| **Data Loss Prevention (DLP)** | ✅ Compliant (Zero Egress) | ContextHub does **not** dial home, collect telemetry, or transmit metadata to cloud endpoints. It works 100% offline (air-gapped compatible). |
+| **Data Privacy (GDPR, CCPA, SOC2)** | ✅ Compliant | No third-party servers receive codebase artifacts or parsed segments. Code stays strictly on the workstation disk. |
+| **Principle of Least Privilege** | ✅ Compliant | ContextHub runs entirely in user-space. It requires **no root/administrator privileges** to compile, install, or run. |
+| **Command Injection & Execution Policies** | ✅ Compliant | The application implements a **zero-shell-execution** model. MCP server and local operations use secure standard APIs and regex/Tree-sitter parsers instead of running binary shell calls. |
+| **Port & Network Exposure Policies** | ✅ Compliant | The visual dashboard binds exclusively to local loopback interface (`127.0.0.1:3847`). It is entirely unreachable from LAN interfaces, public networks, or VPN endpoints. |
+
+---
+
+### 🛡️ Threat Modeling & Attack Surface Mitigation
+
+#### 1. Preventing Arbitrary System File Access (Path Traversal)
+- **Threat:** An attacker could craft custom directory traversal payloads (`../../../`) via the MCP server to read system passwords, environment variables, or SSH private keys.
+- **Mitigation:** ContextHub enforces a strict boundary validation logic (`validatePath`). All file read operations are verified against the active workspace repository bounds. Any file path attempting to escape this boundary is instantly blocked with a sanitized error response.
+
+#### 2. Automatic Secret Redaction
+- **Threat:** Developers accidentally saving passwords, third-party API keys, or private SSH keys into persistent memory vectors, exposing them to disk files or downstream agent contexts.
+- **Mitigation:** A built-in regex-based security engine scans every memory entry before encryption. Credentials matching patterns for API keys (e.g. OpenAI, AWS, GitHub), bearer tokens, Slack tokens, private keys, or passwords are automatically replaced with `[REDACTED]`.
+
+#### 3. Protecting Local Database Files from Malware & Stolen Disk
+- **Threat:** An attacker gaining access to the computer's storage media (or local malware processes) reading plaintext memory or code topology cache.
+- **Mitigation:** Memory storage utilizes cryptographically secure **AES-256-GCM encryption at rest**. The passphrase key is dynamically generated on setup with unique per-repo salts, stored locally with owner-only access permissions (`0600`).
+
+#### 4. Authorization & Malicious Process Isolation
+- **Threat:** Another local script or process on the user's PC query tools or inspect the developer's knowledge base.
+- **Mitigation:** The MCP server stdio channel and dashboard API routes are protected by a cryptographically strong **HMAC-SHA256 Token**. Only clients presenting the active `CONTEXTHUB_TOKEN` header are authorized to invoke MCP tools or endpoints.
+
+---
+
 ## Scan Results — Findings & Remediation
 
 ### 🔴 Critical (3 found, 3 fixed)
