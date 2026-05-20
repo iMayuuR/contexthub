@@ -39,6 +39,7 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Single note | `save_memory` |
 | Unified query | `contexthub_query` |
 | Find context | `search_memory`, `semantic_search` |
+| Context bundle | `get_context_bundle` |
 | Code graph stats | `get_code_graph_stats` |
 | Related symbols | `get_related_symbols` |
 | Blast radius | `get_blast_radius` |
@@ -46,5 +47,12 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Search by code | `search_memory_by_code` |
 | Full policy text | `get_agent_policy` |
 
+## Dashboard
 
-Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using `npx @contexthub/cli start` (or `npx @imayuur/contexthub-cli start`).
+```bash
+# Launch interactive web dashboard (localhost only)
+npx @imayuur/contexthub dashboard
+# Opens at http://127.0.0.1:3847
+```
+
+Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using `npx @contexthub/cli start` (or `npx @imayuur/contexthub start`).

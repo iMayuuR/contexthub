@@ -1,7 +1,7 @@
 # ContextHub — Implemented Features
 
 > **Everything built in this repo.** Pending polish/tests only → [`IMPLEMENTATION_PROMPT.md`](./IMPLEMENTATION_PROMPT.md)  
-> **Author:** Mayur Dattatray Patil · **License:** MIT · **Last updated:** 2026-05-19 (synced with `master` @ `150cdd1+)
+> **Author:** Mayur Dattatray Patil · **License:** MIT · **Last updated:** 2026-05-20 (synced with `master`)
 
 ---
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 2. Packages
+## 2. Packages (14)
 
 | Package | Role |
 |---------|------|
@@ -29,9 +29,12 @@
 | `git-integration` | `simple-git` |
 | `skills` | `architect`, `debug`, `review` (allowlist) |
 | `mcp-server` | All MCP tools, resources, prompts, context bundle |
-| `cli` | All commands below |
+| `cli` | 24 commands (see below) |
+| `memory-engine` | Compact, archive, deduplication algorithms |
+| `context-injector` | Smart context retrieval + prompt enhancement |
+| `agent-connectors` | AI agent adapters (with `safeSaveMemory`) |
 
-**Apps:** `apps/web` — Next.js + `contexthub-client.ts` (dashboard API).
+**Dashboard:** Built into `packages/cli/src/commands/dashboard.ts` — interactive Vis.js web UI on localhost.
 
 ---
 
@@ -72,8 +75,9 @@
 | `init` · `setup` · `start` · `stop` | Lifecycle + agent files + skill install |
 | `memory` · `timeline` · `search` | Memory ops |
 | `watch [path]` | Incremental graph + embeddings + md ingest |
-| `query` · `context` | Unified / bundle query |
-| `export-graph` · `dashboard` · `report` | Viz, UI, GRAPH_REPORT |
+| `query` · `context` | Unified RRF / bundle query |
+| `dashboard` | **Interactive Vis.js web UI** (memory feed, topology graph, query) |
+| `export-graph` · `report` | Graph HTML export, GRAPH_REPORT |
 | `ingest-docs` | Markdown ingest |
 | `doctor` · `status` · `benchmark` | Ops / health / perf |
 | `compact [--archiveAge N]` | Merge pairs + optional archive |

@@ -18,13 +18,13 @@ Your objective is to:
 
 ## 🛠️ Step 1: Automated Installation & Initialization
 
-If ContextHub is not yet running in this workspace, execute the following non-interactive command to initialize and spin up the MCP server (use your personal npm scope `@imayuur/contexthub` if installed under your own account):
+If ContextHub is not yet running in this workspace, execute the following non-interactive command to initialize and spin up the MCP server:
 
 ```bash
 # Standard scope:
 npx -y @contexthub/cli setup
 
-# OR custom scope (highly recommended):
+# OR custom scope:
 npx -y @imayuur/contexthub setup
 ```
 
@@ -33,6 +33,7 @@ npx -y @imayuur/contexthub setup
 - Generates a local AES-256-GCM encryption key file (`.contexthub/.keyfile`) with `0600` (owner-only) permissions.
 - Generates a secure HMAC authentication token (`.contexthub/.auth-token`).
 - Launches the ContextHub MCP server in the background and tracks it via `.contexthub/server.pid`.
+- Installs agent rule files: `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, `.cursor/mcp.json`, `.cursor/hooks/`.
 
 ---
 
@@ -61,13 +62,13 @@ export CONTEXTHUB_TOKEN="<retrieved-token-value>"
 
 Add ContextHub as an MCP server in your configuration.
 
-### For Claude Code (`claudecode.config.json`):
+### For Claude Code (`.claude/settings.json`):
 ```json
 {
   "mcpServers": {
     "contexthub": {
       "command": "npx",
-      "args": ["@contexthub/cli", "start"], // Use "@imayuur/contexthub" if using custom scope
+      "args": ["@imayuur/contexthub", "start"],
       "env": {
         "CONTEXTHUB_TOKEN": "<your-auth-token>"
       }
@@ -76,10 +77,10 @@ Add ContextHub as an MCP server in your configuration.
 }
 ```
 
-### For Cursor (`project settings` or global MCP settings):
+### For Cursor (project settings or global MCP settings):
 - **Name:** `contexthub`
 - **Type:** `command`
-- **Command:** `npx @contexthub/cli start` *(or `npx @imayuur/contexthub start`)*
+- **Command:** `npx @imayuur/contexthub start`
 - **Environment Variables:** `CONTEXTHUB_TOKEN=<your-auth-token>`
 
 ---
@@ -88,16 +89,73 @@ Add ContextHub as an MCP server in your configuration.
 
 Once connected, you have access to the following secure tools. Always use them to enrich your context:
 
+### Session & Memory Tools
+
 | Tool Name | Key Parameters | Purpose |
 |-----------|----------------|---------|
-| `get_project_context` | None | Retrieves high-level project details and active sessions |
-| `get_context_bundle` | `query`, `path`, `sessionId`, `limit` | Generates a unified, intelligent context bundle combining memories, graph symbols, and git |
-| `explain_symbol` | `symbol`, `path` | Explains a specific symbol's definition, callers, and related memories |
-| `save_memory` | `content` (string), `type` (string), `tags` (string[]) | Saves critical decisions, bug fixes, or architecture details |
-| `search_memory` | `query` (string), `limit` (number) | Performs a text-based search over past encrypted memories |
-| `semantic_search` | `query` (string), `limit` (number) | Uses vector search to find conceptually related memories |
-| `get_architecture_summary`| None | Analyzes repo AST structure and provides high-level code graph |
-| `get_recent_changes` | `limit` (number) | Retrieves recent git commit history |
+| `ensure_session` | `agentName` | Start or resume a session |
+| `record_turn` | `prompt`, `response` | Save a conversation turn |
+| `end_session` | `sessionId` | End the active session |
+| `get_project_context` | None | Retrieves project details and active sessions |
+| `get_context_bundle` | `query`, `path`, `sessionId`, `limit` | Unified context bundle combining memories, graph, and git |
+| `save_memory` | `content`, `type`, `tags` | Save decisions, bugs, or architecture notes |
+| `search_memory` | `query`, `limit` | Text search over encrypted memories |
+| `semantic_search` | `query`, `limit` | Vector similarity search |
+| `search_memory_by_code` | `code` | Find memories related to code snippets |
+| `contexthub_query` | `query`, `limit` | Unified RRF search (memory + graph + git) |
+| `explain_symbol` | `symbol`, `path` | Explain a symbol's definition and callers |
+
+### Code Graph & Repo Tools
+
+| Tool Name | Key Parameters | Purpose |
+|-----------|----------------|---------|
+| `get_code_graph_stats` | None | Graph node/edge counts and metrics |
+| `get_related_symbols` | `symbol` | Find related symbols via graph |
+| `get_blast_radius` | `filePath`, `depth` | Transitive impact of file changes |
+| `trace_code_path` | `from`, `to` | Trace dependency path between files |
+| `update_knowledge_graph` | None | Refresh code graph + generate report |
+| `get_god_nodes` | None | Find highest-connectivity hub files |
+| `get_graph_communities` | None | Detect connected components |
+| `diff_code_graph` | None | Diff current graph vs last session |
+| `what_changed_since_session` | `sessionId` | Changes since a specific session |
+| `summarize_repo` | None | Generate repository summary |
+| `get_architecture_summary` | None | AST-based codebase structure |
+| `get_related_files` | `path` | Find connected code files |
+| `get_recent_changes` | `limit` | Recent git commit history |
+| `get_git_summary` | None | Git repository status |
+| `get_memories_for_commit` | `commitHash` | Memories linked to a commit |
+
+### Docs & Skills Tools
+
+| Tool Name | Key Parameters | Purpose |
+|-----------|----------------|---------|
+| `ingest_docs` | `patterns` | Ingest markdown docs into vector engine |
+| `search_docs` | `query` | Search ingested documentation |
+| `ingest_pdf` | `filePath` | Extract text from PDF (requires `CONTEXTHUB_ENABLE_PDF=1`) |
+| `list_skills` | None | List available built-in skills |
+| `load_skill` | `name` | Load a skill |
+| `run_skill_command` | `skill`, `command` | Execute a skill command |
+
+---
+
+## 📊 Step 5: Dashboard (Interactive Web UI)
+
+Launch the local interactive dashboard to visually explore memories and codebase topology:
+
+```bash
+# Launch dashboard (localhost only, port 3847)
+npx @imayuur/contexthub dashboard
+
+# Custom port
+npx @imayuur/contexthub dashboard --port 4000
+```
+
+Opens at `http://127.0.0.1:3847`. Features:
+- **Memory Feed** — browse encrypted memories with tags and timestamps
+- **Intelligent Query** — unified search across memories, graph, and git
+- **Topology Graph** — interactive force-directed Vis.js graph of codebase dependencies
+
+> Dashboard binds to `127.0.0.1` only — never exposed to the network.
 
 ---
 
@@ -112,5 +170,5 @@ As an agentic AI, you **MUST** strictly adhere to the following security protoco
 5. **No Shell Profile Modifying Hooks:** Do not write shell startup hooks or traps to the user's terminal profiles (`.zshrc`, `.bashrc`). ContextHub operates strictly via the clean background server managed by `contexthub stop` and `contexthub start`.
 6. **Graceful Daemon Shutdown:** To stop the server at the end of operations, simply run:
    ```bash
-   npx @contexthub/cli stop # or npx @imayuur/contexthub stop
+   npx @imayuur/contexthub stop
    ```

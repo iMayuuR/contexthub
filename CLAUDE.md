@@ -2,37 +2,45 @@
 
 ## Project Overview
 
-ContextHub is a **persistent AI memory and context orchestration layer** for coding agents. It provides automatic context injection, semantic memory search, and repository intelligence for AI coding assistants like Claude Code, Cursor, and any MCP-compatible agent.
+ContextHub is a **persistent AI memory and context orchestration layer** for coding agents. It provides automatic context injection, semantic memory search, and repository intelligence for AI coding assistants like Claude Code, Cursor, Windsurf, and any MCP-compatible agent.
 
-> **Security Note:** This codebase has been security-hardened. All data is encrypted at rest (AES-256-GCM), all inputs are validated, and sensitive data is auto-redacted. See `SECURITY.md` for the full audit report.
+> **Security Note:** This codebase has been security-hardened. All data is encrypted at rest (AES-256-GCM), all inputs are validated, and sensitive data is auto-redacted. See `SECURITY.md` for the full audit report (26 findings, all fixed, 38/38 tests passing).
 
 ### Architecture
 
 ```
 contexthub/
-├── apps/
-│   ├── web/              # Next.js dashboard (planned)
-│   └── desktop/           # Electron app (planned)
 ├── packages/
-│   ├── core/              # Core ContextHub engine
-│   │   ├── security.ts    # 🔒 SecurityManager (encryption, validation, redaction)
+│   ├── shared-types/      # TypeScript interfaces (Session, MemoryEntry, CodeGraph)
+│   ├── core/              # Core engine: storage, security, RRF query, config, limits
+│   │   ├── security.ts    # 🔒 SecurityManager (AES-256-GCM, validation, redaction)
 │   │   ├── memory-storage.ts # Encrypted JSON storage with mutex + atomic writes
+│   │   ├── contexthub-ignore.ts # .contexthubignore file support
 │   │   └── index.ts       # ContextHubCore facade
-│   ├── cli/               # Command-line interface
+│   ├── cli/               # Command-line interface (24 commands)
 │   │   ├── setup.ts       # Secure init (no shell hooks, PID management)
 │   │   ├── start.ts       # Server start with port validation + PID file
 │   │   ├── stop.ts        # Clean shutdown via SIGTERM/SIGKILL
+│   │   ├── dashboard.ts   # Interactive web dashboard (Vis.js topology graph)
+│   │   ├── watch.ts       # Incremental file watcher (graph + embeddings)
+│   │   ├── query.ts       # Unified RRF query (memory + graph + git)
 │   │   └── index.ts       # Commander setup with error sanitization
-│   ├── mcp-server/        # MCP server (hardened with safeHandler)
-│   ├── shared-types/      # TypeScript interfaces (Session, MemoryEntry, etc.)
-│   ├── memory-engine/     # Advanced memory algorithms
-│   ├── vector-engine/     # Embeddings and similarity search (encrypted store)
-│   ├── repo-parser/       # Code analysis (sandboxed: file limits, symlink check)
-│   ├── context-injector/  # Context retrieval and prompt enhancement
-│   ├── git-integration/   # Git history and commit tracking
-│   ├── agent-connectors/  # Adapters for AI agents (with safeSaveMemory)
-│   └── skills/            # Built-in skills only (no disk loading)
-├── SECURITY.md            # Full security scan report
+│   ├── mcp-server/        # MCP server (35+ tools, hardened with safeHandler)
+│   ├── knowledge-graph/   # Code graph: build/patch, god-nodes, communities, reports
+│   ├── vector-engine/     # Embeddings: local bigram TF-IDF, optional transformers
+│   ├── repo-parser/       # Code analysis: Tree-sitter (TS/JS/TSX/Py) + regex 15+ langs
+│   ├── git-integration/   # Git history: simple-git wrapper
+│   ├── docs-ingest/       # Markdown chunk + embed into vector engine
+│   ├── plugin-pdf/        # PDF parse (CONTEXTHUB_ENABLE_PDF=1)
+│   ├── memory-engine/     # Advanced memory algorithms (compact, archive, dedup)
+│   ├── context-injector/  # Smart context retrieval and prompt enhancement
+│   ├── agent-connectors/  # AI agent adapters (with safeSaveMemory)
+│   └── skills/            # Built-in skills only: architect, debug, review (allowlist)
+├── scripts/
+│   ├── publish-packages.js  # Publish all packages to npm in dependency order
+│   └── rename-scope.js     # Rename package scope (e.g. @contexthub → @imayuur)
+├── docs/                  # Documentation: IMPLEMENTED, BENCHMARKS, AIRGAP, COMPARISON
+├── SECURITY.md            # 🔒 Full security scan report
 └── .contexthub/           # Per-repo encrypted storage (created at runtime)
 ```
 
@@ -42,27 +50,39 @@ contexthub/
 # Install dependencies
 npm install
 
-# Build all packages
+# Build all packages (in dependency order)
 npm run build
 
-# Development mode
-npm run dev
+# Run all tests (38 tests across 4 packages)
+npm test
 
 # Initialize ContextHub in a repo
-node packages/cli/dist/index.js init
+node packages/cli/dist/index.js setup
 
 # Run memory operations
 node packages/cli/dist/index.js memory --list
 node packages/cli/dist/index.js memory --add "Note here"
-
-# Setup with MCP server + encrypted storage
-node packages/cli/dist/index.js setup
 
 # Start MCP server
 node packages/cli/dist/index.js start --port 3000
 
 # Stop MCP server cleanly
 node packages/cli/dist/index.js stop
+
+# Launch interactive dashboard
+node packages/cli/dist/index.js dashboard --port 3847
+
+# Unified query (RRF: memory + graph + git)
+node packages/cli/dist/index.js query "auth race condition"
+
+# Watch files for incremental graph updates
+node packages/cli/dist/index.js watch
+
+# Run diagnostics
+node packages/cli/dist/index.js doctor
+
+# Performance benchmarks
+node packages/cli/dist/index.js benchmark
 
 # --- Publishing to NPM ---
 # Rename packages scope to your custom org/user (e.g. @imayuur)
@@ -91,43 +111,60 @@ npm run publish:packages
   - `validatePort()`, `validateLimit()`, `validateMemoryType()` — Param validation
   - `generateAuthToken()` / `verifyAuthToken()` — HMAC-based auth
   - `isSensitiveFile()` — Block `.env`, `.pem`, `.key` from parsing
+- `runUnifiedQuery()` — RRF hybrid query merging semantic, keyword, graph, and git results
+- `loadConfig()` — Load `contexthub.config.js` for multi-root workspace support
 
 ### CLI Package (`packages/cli`)
 
-Commands:
-- `init` — Initialize ContextHub in repository
-- `setup` — Secure setup with encrypted storage + MCP server + auth token
-- `memory` — Manage memories (--list, --add, --search, --type)
-- `timeline` — View session timeline
-- `search` — Semantic search across memories
-- `start` — Start MCP server (port validation, PID file, graceful shutdown)
-- `stop` — Stop MCP server cleanly via PID file
+24 commands:
+- `init` / `setup` / `start` / `stop` — Lifecycle + agent files + skill install
+- `memory` / `timeline` / `search` — Memory operations
+- `watch [path]` — Incremental graph + embeddings + md ingest
+- `query` / `context` — Unified RRF query / context bundle generation
+- `dashboard` — Interactive web UI with Vis.js topology graph
+- `export-graph` / `report` — Graph export and GRAPH_REPORT.md
+- `ingest-docs` — Markdown documentation ingest
+- `doctor` / `status` / `benchmark` — Health, status, and performance
+- `compact --archive-age N` — Merge pairs + optional archive
+- `export-memories` — Encrypted portable bundle (.chub)
+- `ci` / `blast-radius` — CI diagnostics and PR impact analysis
 
 ### MCP Server (`packages/mcp-server`)
 
-All tools wrapped with `safeHandler()` for error sanitization:
-- `get_project_context` — Get project metadata and recent sessions
-- `search_memory` — Text search memories (query sanitized, limit bounded)
-- `save_session` — Create new session (agent name sanitized)
-- `end_session` — End active session
-- `save_memory` — Store memory (content sanitized, type validated, tags capped)
-- `summarize_repo` — Generate repo summary
-- `get_related_files` — Find related files (path validated)
-- `get_recent_changes` — Get git recent changes (limit bounded)
-- `get_architecture_summary` — Analyze codebase structure
-- `semantic_search` — Vector similarity search (query sanitized)
-- `update_knowledge_graph` — Update code knowledge graph
-- `list_skills` / `load_skill` — Skill management (name validated)
-- `run_skill_command` — Execute skill (all args sanitized)
-- `get_git_summary` — Git repository summary
+35+ tools registered, all wrapped with `safeHandler()` for error sanitization:
+
+**Session & Memory:** `ensure_session`, `record_turn`, `save_session`, `end_session`, `get_project_context`, `save_memory`, `search_memory`, `semantic_search`, `search_memory_by_code`, `contexthub_query`, `get_context_bundle`, `explain_symbol`
+
+**Graph:** `get_code_graph_stats`, `get_related_symbols`, `get_blast_radius`, `trace_code_path`, `update_knowledge_graph`, `get_god_nodes`, `get_graph_communities`, `diff_code_graph`, `what_changed_since_session`
+
+**Repo & Git:** `summarize_repo`, `get_architecture_summary`, `get_related_files`, `get_recent_changes`, `get_git_summary`, `get_memories_for_commit`
+
+**Docs & Skills:** `ingest_docs`, `search_docs`, `ingest_pdf`, `list_skills`, `load_skill`, `run_skill_command`
+
+**Resources:** `contexthub://policy`, `contexthub://graph-stats`, `contexthub://report`
+**Prompts:** `summarize-session`, `onboard-repo`, `pre-commit-review`
+
+### Knowledge Graph (`packages/knowledge-graph`)
+
+- Multi-root support via `contexthub.config.js` → prefixed node ids (`pkg:…#path`)
+- God-node detection (high-degree transitive hubs)
+- Community detection (connected components)
+- Snapshot diffing across sessions
+- `GRAPH_REPORT.md` generation with dependency analysis
+
+### Repo Parser (`packages/repo-parser`)
+
+- **Tree-sitter WASM:** TypeScript, JavaScript, TSX, Python (5s timeout, regex fallback)
+- **Regex parsers:** Go, Rust, Java, Ruby, PHP, C#, Swift, Kotlin, Scala, C/C++
+- Fixtures + tests for each language under `packages/repo-parser/fixtures/`
 
 ### Shared Types (`packages/shared-types`)
 
 - `Session` — Agent session with timing and metadata
 - `MemoryEntry` — Memory with type union: `prompt | response | summary | decision | architecture | bugfix | manual | commit`
+- `CodeGraph` — Graph data structure with nodes and edges
 - `ProjectMetadata` — Project info (name, language, framework, timestamps)
 - `VectorSearchResult` — Search result with id, score, and memory metadata
-- `SecurityConfig` — Security configuration interface
 - `VALID_MEMORY_TYPES` — Allowed memory type constants
 
 ### Skills Package (`packages/skills`)
@@ -224,7 +261,20 @@ Run security verification tests:
 ```bash
 npm run build
 npm test
+# Expected: 38/38 tests passed across cli, core, knowledge-graph, repo-parser
 ```
+
+## Performance Benchmarks
+
+| Metric | Value |
+|--------|-------|
+| Context Bundle Latency | **302ms** |
+| Graph Build Time | 3.37s (192 files) |
+| Memory Search | <2ms |
+| Vector Search | <7ms |
+| Watch Mode Patch | <50ms |
+
+See `docs/BENCHMARKS.md` for full details.
 
 ---
 
@@ -270,6 +320,7 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Save a turn | `record_turn` |
 | Single note | `save_memory` |
 | Unified query | `contexthub_query` |
+| Context bundle | `get_context_bundle` |
 | Find context | `search_memory`, `semantic_search` |
 | Code graph stats | `get_code_graph_stats` |
 | Related symbols | `get_related_symbols` |
@@ -278,6 +329,4 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Search by code | `search_memory_by_code` |
 | Full policy text | `get_agent_policy` |
 
-
-Connect MCP: `npx @contexthub/cli start` with `CONTEXTHUB_TOKEN` from `.contexthub/.auth-token` (do not commit the token).
-
+Connect MCP: `npx @imayuur/contexthub start` with `CONTEXTHUB_TOKEN` from `.contexthub/.auth-token` (do not commit the token).

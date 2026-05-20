@@ -66,36 +66,61 @@ Configure your AI agent to connect to ContextHub as an MCP server via stdio tran
 ### CLI Commands
 
 ```bash
-# List all memories
+# Memory operations
 contexthub memory --list
-
-# Add a memory manually
 contexthub memory --add "Handle race condition in auth module"
-
-# Search memories
 contexthub memory --search "authentication bug"
-
-# Filter by type
 contexthub memory --list --type bugfix
 
-# View session timeline
+# Session timeline
 contexthub timeline --limit 20
 
 # Semantic search (vector-enabled)
 contexthub search --query "how to implement caching" --limit 5
 
-# Start MCP server manually
-contexthub start --port 3000
+# Unified RRF query (memory + graph + git)
+contexthub query "auth race condition"
 
-# Stop MCP server cleanly
-contexthub stop
+# Generate context bundle for agents
+contexthub context --query "caching strategy"
 
-# Launch local dashboard
+# Watch for incremental graph updates
+contexthub watch
+
+# Launch interactive dashboard
 contexthub dashboard
+
+# Server lifecycle
+contexthub start --port 3000
+contexthub stop
 
 # Ingest documentation
 contexthub ingest-docs
+
+# Health & performance
+contexthub doctor
+contexthub benchmark
 ```
+
+---
+
+## Dashboard (Interactive Web UI)
+
+```bash
+# Launch the local dashboard (localhost only)
+contexthub dashboard
+
+# Custom port
+contexthub dashboard --port 4000
+```
+
+Opens at `http://127.0.0.1:3847`. Features:
+- **Memory Feed** — browse all encrypted memories with tags and timestamps
+- **Intelligent Query** — unified search across memories, graph, and git
+- **Topology Graph** — interactive force-directed Vis.js graph of your codebase dependencies
+- Click any node to inspect package workspace, dependency degree, and direct neighbors
+
+> Dashboard binds to `127.0.0.1` only — never exposed to the network.
 
 ---
 
@@ -103,32 +128,34 @@ contexthub ingest-docs
 
 ```
 contexthub/
-├── packages/
-│   ├── core/              # Memory storage, encryption & session management
-│   │   ├── security.ts    # 🔒 SecurityManager (AES-256-GCM, validation)
-│   │   └── memory-storage.ts # Encrypted JSON storage with atomic writes
-│   ├── cli/               # Command-line interface
-│   │   ├── setup.ts       # Secure initialization (no shell modification)
-│   │   ├── start.ts       # Server with PID tracking
-│   │   └── stop.ts        # Clean shutdown command
-│   ├── mcp-server/        # MCP protocol server (hardened)
-│   ├── vector-engine/     # Embeddings & semantic search
-│   ├── repo-parser/       # Code structure analysis (sandboxed)
-│   ├── git-integration/   # Git history & commit tracking
+├── packages/              # 14 packages
+│   ├── shared-types/      # TypeScript interfaces (Session, MemoryEntry, CodeGraph)
+│   ├── core/              # Storage, security, RRF query, config, limits
+│   ├── cli/               # 24 CLI commands (setup, dashboard, watch, query, etc.)
+│   ├── mcp-server/        # MCP protocol server (35+ tools, hardened)
+│   ├── knowledge-graph/   # Code graph: god-nodes, communities, snapshots, reports
+│   ├── vector-engine/     # Embeddings: local bigram TF-IDF, optional transformers
+│   ├── repo-parser/       # Tree-sitter (TS/JS/TSX/Py) + regex 15+ languages
+│   ├── git-integration/   # Git history & commit tracking (simple-git)
+│   ├── docs-ingest/       # Markdown chunk + embed into vector engine
+│   ├── plugin-pdf/        # PDF parse (optional, env flag)
 │   ├── context-injector/  # Smart context retrieval
-│   ├── memory-engine/     # Advanced memory algorithms
+│   ├── memory-engine/     # Compact, archive, deduplication algorithms
 │   ├── agent-connectors/  # AI agent adapters (sanitized)
-│   ├── skills/            # Built-in skill modules (locked)
-│   └── shared-types/      # TypeScript interfaces
-├── SECURITY.md            # 🔒 Full security scan report
-└── .contexthub/           # Per-repo encrypted storage
+│   └── skills/            # Built-in skills only: architect, debug, review
+├── scripts/               # publish-packages.js, rename-scope.js
+├── docs/                  # IMPLEMENTED, BENCHMARKS, AIRGAP, COMPARISON
+├── SECURITY.md            # 🔒 Full security scan report (26 findings, all fixed)
+└── .contexthub/           # Per-repo encrypted storage (created at runtime)
     ├── memories.json      # 🔐 Encrypted memory storage
     ├── sessions.json      # 🔐 Encrypted session history
     ├── project-metadata.json # 🔐 Encrypted metadata
     ├── .keyfile           # 🔑 Encryption key (mode 0600)
     ├── .auth-token        # 🔑 MCP auth token (mode 0600)
     ├── server.pid         # Process ID for server management
-    └── embeddings/        # Vector embeddings
+    ├── graph/             # 🔐 Encrypted code knowledge graph
+    ├── embeddings/        # Vector embeddings
+    └── GRAPH_REPORT.md    # Auto-generated dependency report
 ```
 
 ### How It Works
@@ -142,27 +169,18 @@ contexthub/
 
 ---
 
-## MCP Tools Available
+## MCP Tools Available (35+)
 
-| Tool | Description |
-|------|-------------|
-| `get_project_context` | Project metadata + recent sessions |
-| `search_memory` | Full-text search across memories |
-| `semantic_search` | Vector similarity search |
-| `save_session` | Create new agent session |
-| `end_session` | End an active session |
-| `save_memory` | Store memory entry (sanitized + encrypted) |
-| `summarize_repo` | Generate repository summary |
-| `get_architecture_summary` | Code structure analysis |
-| `get_related_files` | Find connected code files |
-| `get_recent_changes` | Git commit history |
-| `get_git_summary` | Git repository status |
-| `update_knowledge_graph` | Refresh code analysis + generate report |
-| `get_god_nodes` | Find highest-connectivity files |
-| `get_graph_communities` | Detect file-level connected components |
-| `ingest_pdf` | Extract text from PDF documents |
-| `list_skills` / `load_skill` | Skills system |
-| `run_skill_command` | Execute built-in skill commands |
+**Session & Memory:** `ensure_session`, `record_turn`, `save_session`, `end_session`, `get_project_context`, `save_memory`, `search_memory`, `semantic_search`, `search_memory_by_code`, `contexthub_query`, `get_context_bundle`, `explain_symbol`
+
+**Code Graph:** `get_code_graph_stats`, `get_related_symbols`, `get_blast_radius`, `trace_code_path`, `update_knowledge_graph`, `get_god_nodes`, `get_graph_communities`, `diff_code_graph`, `what_changed_since_session`
+
+**Repo & Git:** `summarize_repo`, `get_architecture_summary`, `get_related_files`, `get_recent_changes`, `get_git_summary`, `get_memories_for_commit`
+
+**Docs & Skills:** `ingest_docs`, `search_docs`, `ingest_pdf`, `list_skills`, `load_skill`, `run_skill_command`
+
+**Resources:** `contexthub://policy`, `contexthub://graph-stats`, `contexthub://report`
+**Prompts:** `summarize-session`, `onboard-repo`, `pre-commit-review`
 
 > All tools are wrapped with `safeHandler()` — errors never expose internal paths or stack traces.
 
@@ -264,18 +282,24 @@ npm run build
 node packages/cli/dist/index.js --help
 ```
 
-### Package Structure
+### Package Structure (14 packages)
 
 | Package | Purpose |
 |---------|---------|
-| `@contexthub/core` | Core API — sessions, memories, encryption, SecurityManager |
-| `@contexthub/vector-engine` | Embedding generation & similarity search |
-| `@contexthub/repo-parser` | Code parsing & analysis (sandboxed) |
-| `@contexthub/git-integration` | Git operations via simple-git |
-| `@contexthub/mcp-server` | MCP protocol implementation (hardened) |
-| `@contexthub/agent-connectors` | Claude Code, Cursor adapters (sanitized) |
-| `@contexthub/skills` | Built-in skill modules (locked) |
-| `@contexthub/shared-types` | TypeScript interfaces |
+| `shared-types` | TypeScript interfaces (Session, MemoryEntry, CodeGraph) |
+| `core` | Storage, security, RRF query, config, contexthub-ignore, limits |
+| `cli` | 24 CLI commands (setup, dashboard, watch, query, etc.) |
+| `mcp-server` | MCP protocol with 35+ tools, resources, prompts |
+| `knowledge-graph` | Graph build/patch, god-nodes, communities, reports, snapshots |
+| `vector-engine` | Local bigram TF-IDF embeddings, optional transformers |
+| `repo-parser` | Tree-sitter WASM (TS/JS/TSX/Py) + regex 15+ languages |
+| `git-integration` | Git operations via simple-git |
+| `docs-ingest` | Markdown chunk + embed into vector engine |
+| `plugin-pdf` | PDF text extraction (optional, env flag) |
+| `memory-engine` | Compact, archive, deduplication algorithms |
+| `context-injector` | Smart context retrieval and prompt enhancement |
+| `agent-connectors` | AI agent adapters (sanitized with safeSaveMemory) |
+| `skills` | Built-in only: architect, debug, review (allowlist) |
 
 ---
 
