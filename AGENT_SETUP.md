@@ -18,17 +18,35 @@ Your objective is to:
 
 ## 🛠️ Step 1: Automated Installation & Initialization
 
-If ContextHub is not yet running in this workspace, execute the following non-interactive command to initialize and spin up the MCP server:
+You can set up ContextHub either **Globally** (for use across all your repositories) or as a **Single-Repo local setup** (confined to this project only).
 
+### Option A: Single Repository Installation (Recommended for Teams)
+Installs ContextHub as a local devDependency within the current repository. Perfect for project-level isolation.
 ```bash
-# Standard scope:
-npx -y @imayuur/contexthub setup
+# 1. Install locally in the project root
+npm install --save-dev @imayuur/contexthub
 
-# OR custom scope:
+# 2. Run the local setup
+npx contexthub setup
+```
+
+### Option B: Global Installation (Universal Access)
+Installs ContextHub globally on your system. Best if you want to use it across multiple different repositories.
+```bash
+# 1. Install globally
+npm install -g @imayuur/contexthub
+
+# 2. Run setup in the project root
+contexthub setup
+```
+
+### Option C: Instant Execution (No Local Install)
+If you do not want to install it locally or globally, run instantly via `npx`:
+```bash
 npx -y @imayuur/contexthub setup
 ```
 
-### What this command does:
+### What the `setup` command does:
 - Creates a secure `.contexthub/` directory in the project root.
 - Generates a local AES-256-GCM encryption key file (`.contexthub/.keyfile`) with `0600` (owner-only) permissions.
 - Generates a secure HMAC authentication token (`.contexthub/.auth-token`).

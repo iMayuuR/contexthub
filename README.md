@@ -37,21 +37,39 @@ ContextHub is a **local-first, privacy-focused AI memory and context orchestrati
 
 ## Quick Start
 
-### One-Command Installation
+You can set up ContextHub either **Globally** (for all your coding repositories) or as a **Single-Repo local setup** (isolated to this project only).
 
+### Option A: Single Repository Setup (Recommended)
+Add ContextHub as a local dependency inside this specific project:
 ```bash
-# Standard scope:
-npx @imayuur/contexthub setup
+# 1. Install locally in the project root
+npm install --save-dev @imayuur/contexthub
 
-# OR custom scope:
+# 2. Run the local setup
+npx contexthub setup
+```
+
+### Option B: Global Installation (Universal)
+Install globally to make the `contexthub` command globally accessible anywhere on your system:
+```bash
+# 1. Install globally
+npm install -g @imayuur/contexthub
+
+# 2. Run setup in the project root
+contexthub setup
+```
+
+### Option C: Instant Execution (No Install)
+Run instantly via `npx` without storing any packages locally or globally:
+```bash
 npx @imayuur/contexthub setup
 ```
 
 That's it! ContextHub will:
 1. Initialize encrypted storage in `.contexthub/`
-2. Generate encryption key (`.contexthub/.keyfile`, mode `0600`)
+2. Generate encryption key (`.contexthub/.keyfile`, owner-only `0600` permissions)
 3. Generate auth token (`.contexthub/.auth-token`)
-4. Start the MCP server in background with PID tracking
+4. Start the MCP server in the background with PID tracking
 
 ### For AI Agents
 
