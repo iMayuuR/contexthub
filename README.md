@@ -144,7 +144,7 @@ contexthub/
 │   ├── agent-connectors/  # AI agent adapters (sanitized)
 │   └── skills/            # Built-in skills only: architect, debug, review
 ├── scripts/               # publish-packages.js, rename-scope.js
-├── docs/                  # IMPLEMENTED, BENCHMARKS, AIRGAP, COMPARISON
+├── docs/                  # Marketing site, assets
 ├── SECURITY.md            # 🔒 Full security scan report (26 findings, all fixed)
 └── .contexthub/           # Per-repo encrypted storage (created at runtime)
     ├── memories.json      # 🔐 Encrypted memory storage
@@ -305,7 +305,7 @@ node packages/cli/dist/index.js --help
 
 ## Implementation Roadmap
 
-All features, optimizations, and unit/integration tests are 100% complete. See the detailed roadmap report: [`docs/IMPLEMENTED.md`](docs/IMPLEMENTED.md).
+All features, optimizations, and unit/integration tests are 100% complete.
 
 ## Roadmap
 

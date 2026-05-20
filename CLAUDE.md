@@ -39,7 +39,7 @@ contexthub/
 ├── scripts/
 │   ├── publish-packages.js  # Publish all packages to npm in dependency order
 │   └── rename-scope.js     # Rename package scope (e.g. @contexthub → @imayuur)
-├── docs/                  # Documentation: IMPLEMENTED, BENCHMARKS, AIRGAP, COMPARISON
+├── docs/                  # Marketing site, assets
 ├── SECURITY.md            # 🔒 Full security scan report
 └── .contexthub/           # Per-repo encrypted storage (created at runtime)
 ```
@@ -274,7 +274,7 @@ npm test
 | Vector Search | <7ms |
 | Watch Mode Patch | <50ms |
 
-See `docs/BENCHMARKS.md` for full details.
+Run `contexthub benchmark` to generate fresh numbers for your machine.
 
 ---
 

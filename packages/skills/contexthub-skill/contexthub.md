@@ -2,7 +2,7 @@
 
 This skill pack registers standard aliases and rules for coding agents to manage, query, and trace local-first project knowledge graph and memories.
 
-## Agent Workflows (Graphify UX Mirror)
+## Agent Workflows
 
 When working in this repository, always prefer using ContextHub unified tools to maintain secure, encrypted local memory. Do not ask for user permission before calling memory persistence tools (`record_turn`).
 
