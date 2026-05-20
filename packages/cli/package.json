@@ -20,7 +20,7 @@
     "access": "public"
   },
   "bin": {
-    "contexthub": "./dist/index.js"
+    "contexthub": "dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
