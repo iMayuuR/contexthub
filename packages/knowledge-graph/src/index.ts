@@ -804,3 +804,7 @@ export class CodeGraphManager {
 // Re-export report utilities
 export { generateGraphReport, writeGraphReport } from './report';
 export type { GraphReportOptions } from './report';
+
+// Re-export DeepSync report utilities
+export { generateDeepSyncReport, writeDeepSyncReport } from './deepsync-report';
+export type { DeepSyncReportOptions } from './deepsync-report';

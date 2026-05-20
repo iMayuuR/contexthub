@@ -21,11 +21,12 @@
       </a>
       <nav class="desktop-nav" aria-label="Primary">
         <a href="#install" class="nav-link">[01] Install</a>
-        <a href="#features" class="nav-link">[02] Features</a>
-        <a href="#mcp" class="nav-link">[03] MCP</a>
-        <a href="#commands" class="nav-link">[04] Commands</a>
-        <a href="#security" class="nav-link">[05] Security</a>
-        <a href="#agents" class="nav-link">[06] Agents</a>
+        <a href="#deepsync" class="nav-link highlight">[02] DeepSync</a>
+        <a href="#features" class="nav-link">[03] Features</a>
+        <a href="#mcp" class="nav-link">[04] MCP</a>
+        <a href="#commands" class="nav-link">[05] Commands</a>
+        <a href="#security" class="nav-link">[06] Security</a>
+        <a href="#agents" class="nav-link">[07] Agents</a>
         <a href="https://github.com/iMayuuR/contexthub" target="_blank" rel="noopener" class="nav-link highlight">[GH] Source</a>
       </nav>
       <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
@@ -36,6 +37,7 @@
 
   <nav class="mobile-nav" aria-label="Mobile">
     <a href="#install" class="mobile-link">&gt; Install</a>
+    <a href="#deepsync" class="mobile-link highlight">&gt; DeepSync</a>
     <a href="#features" class="mobile-link">&gt; Features</a>
     <a href="#mcp" class="mobile-link">&gt; MCP Server</a>
     <a href="#commands" class="mobile-link">&gt; Commands</a>
@@ -53,6 +55,7 @@
         <span class="badge">MIT</span>
         <span class="badge success-badge">70%-90% Token Savings</span>
         <span class="badge">AES-256-GCM</span>
+        <span class="badge success-badge">🧠 DeepSync</span>
         <span class="badge">MCP Server</span>
         <span class="badge">stdio</span>
       </div>
@@ -74,7 +77,6 @@
           </div>
         </div>
       </div>
-      <p class="hero-tagline">An MCP server with a terminal-styled docs site — persistent encrypted memory for your agents.</p>
     </section>
 
     <!-- WHAT -->
@@ -128,6 +130,41 @@
       </div>
     </section>
 
+    <!-- DEEPSYNC -->
+    <section class="cli-section" id="deepsync">
+      <h2 class="section-title">~/deepsync<span class="cursor-blink">_</span></h2>
+      <p class="section-lead"><strong>🧠 DeepSync</strong> — One command. Total codebase intelligence. Auto-updating. Scans your entire repo (code + docs + git history) and builds a complete encrypted knowledge graph.</p>
+
+      <div class="cli-block copy-block" data-copy="npx @imayuur/contexthub deepsync">
+        <p class="comment"># One-command repo intelligence scan</p>
+        <p class="code">npx @imayuur/contexthub deepsync</p>
+        <button type="button" class="copy-btn" aria-label="Copy command">copy</button>
+      </div>
+
+      <div class="feature-grid" style="margin-top: 24px;">
+        <article class="feature-card highlighted-card">
+          <h3 class="feature-title" style="color: var(--accent-cyan);">&gt; Code Analysis</h3>
+          <p class="feature-text">Parses all source files across 15+ languages. Indexes symbols, imports, and dependency relationships.</p>
+        </article>
+        <article class="feature-card highlighted-card">
+          <h3 class="feature-title" style="color: var(--accent-cyan);">&gt; Docs Ingestion</h3>
+          <p class="feature-text">Ingests all markdown files into searchable semantic memory with vector embeddings.</p>
+        </article>
+        <article class="feature-card highlighted-card">
+          <h3 class="feature-title" style="color: var(--accent-cyan);">&gt; Git Mining</h3>
+          <p class="feature-text">Analyzes commit history, identifies hot files and recent focus areas.</p>
+        </article>
+        <article class="feature-card highlighted-card">
+          <h3 class="feature-title" style="color: var(--accent-cyan);">&gt; Auto-Sync</h3>
+          <p class="feature-text">After the first scan, context auto-updates every session via <code>ensure_session</code>. Zero effort.</p>
+        </article>
+      </div>
+
+      <div class="warn-box" style="border-color: var(--accent-cyan); background: rgba(0, 210, 255, 0.06); margin-top: 24px;">
+        <p style="color: var(--accent-cyan);"><strong>Output:</strong> <code>.contexthub/DEEPSYNC.md</code> — Architecture overview, documentation index, git intelligence, and graph stats. Your AI agent reads this automatically.</p>
+      </div>
+    </section>
+
     <!-- FEATURES -->
     <section class="cli-section" id="features">
       <h2 class="section-title">~/features<span class="cursor-blink">_</span></h2>
@@ -135,6 +172,10 @@
         <article class="feature-card highlighted-card">
           <h3 class="feature-title" style="color: var(--accent-cyan);">&gt; Token & Cost Optimizer</h3>
           <p class="feature-text">Saves 70%-90% input context window. Intelligent hybrid RRF filtering and dense session compression eliminate wasteful chat dumps, saving massive API costs.</p>
+        </article>
+        <article class="feature-card highlighted-card">
+          <h3 class="feature-title" style="color: var(--accent-cyan);">&gt; 🧠 DeepSync</h3>
+          <p class="feature-text">One command to scan your entire repo. Builds a complete knowledge graph from code, docs, and git — then auto-updates every session.</p>
         </article>
         <article class="feature-card">
           <h3 class="feature-title">&gt; Persistent Memory</h3>
@@ -163,10 +204,6 @@
         <article class="feature-card">
           <h3 class="feature-title">&gt; Local-First</h3>
           <p class="feature-text">Zero telemetry. Data never leaves your repository.</p>
-        </article>
-        <article class="feature-card">
-          <h3 class="feature-title">&gt; Learns Over Time</h3>
-          <p class="feature-text">Improves relevance through usage patterns.</p>
         </article>
         <article class="feature-card">
           <h3 class="feature-title">&gt; Multi-Root Config</h3>
@@ -206,6 +243,8 @@
             <tr><td><code>contexthub ingest-docs</code></td><td>Ingest Markdown docs</td></tr>
             <tr><td><code>contexthub start --port 3000</code></td><td>Start MCP server manually</td></tr>
             <tr><td><code>contexthub stop</code></td><td>Stop MCP server cleanly</td></tr>
+            <tr><td><code>contexthub deepsync</code></td><td>🧠 One-command repo intelligence scan</td></tr>
+            <tr><td><code>contexthub deepsync --force</code></td><td>Force full re-scan</td></tr>
           </tbody>
         </table>
       </div>
@@ -247,7 +286,7 @@
 ├── packages/
 │   ├── core/              # Memory, encryption, SecurityManager
 │   ├── mcp-server/        # ★ MCP server (stdio tools, safeHandler)
-│   ├── cli/               # launcher: setup, start, stop (not the product)
+│   ├── cli/               # launcher: setup, deepsync, start, stop
 │   ├── vector-engine/     # Embeddings & semantic search
 │   ├── repo-parser/       # Code analysis (sandboxed)
 │   ├── git-integration/   # Git history & commits
@@ -260,6 +299,7 @@
     ├── memories.json
     ├── sessions.json
     ├── .keyfile / .auth-token
+    ├── DEEPSYNC.md         # 🧠 DeepSync intelligence report
     └── embeddings/</code></pre>
     </section>
 

@@ -17,7 +17,7 @@ contexthub/
 │   │   ├── memory-storage.ts # Encrypted JSON storage with mutex + atomic writes
 │   │   ├── contexthub-ignore.ts # .contexthubignore file support
 │   │   └── index.ts       # ContextHubCore facade
-│   ├── cli/               # Command-line interface (24 commands)
+│   ├── cli/               # Command-line interface (25 commands)
 │   │   ├── setup.ts       # Secure init (no shell hooks, PID management)
 │   │   ├── start.ts       # Server start with port validation + PID file
 │   │   ├── stop.ts        # Clean shutdown via SIGTERM/SIGKILL
@@ -84,6 +84,10 @@ node packages/cli/dist/index.js doctor
 # Performance benchmarks
 node packages/cli/dist/index.js benchmark
 
+# DeepSync — one-command repo intelligence
+node packages/cli/dist/index.js deepsync
+node packages/cli/dist/index.js deepsync --force
+
 # --- Publishing to NPM ---
 # Rename packages scope to your custom org/user (e.g. @imayuur)
 npm run rename-scope @imayuur
@@ -116,11 +120,12 @@ npm run publish:packages
 
 ### CLI Package (`packages/cli`)
 
-24 commands:
+25 commands:
 - `init` / `setup` / `start` / `stop` — Lifecycle + agent files + skill install
 - `memory` / `timeline` / `search` — Memory operations
 - `watch [path]` — Incremental graph + embeddings + md ingest
 - `query` / `context` — Unified RRF query / context bundle generation
+- `deepsync` — 🧠 One-command repo intelligence (code + docs + git → knowledge graph)
 - `dashboard` — Interactive web UI with Vis.js topology graph
 - `export-graph` / `report` — Graph export and GRAPH_REPORT.md
 - `ingest-docs` — Markdown documentation ingest
@@ -328,5 +333,13 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Trace path | `trace_code_path` |
 | Search by code | `search_memory_by_code` |
 | Full policy text | `get_agent_policy` |
+
+## 🧠 DeepSync — Instant Repo Intelligence
+
+Run `npx @imayuur/contexthub deepsync` once to build a complete knowledge graph of your codebase — code, docs, and git history. After that, context **auto-updates every session** via `ensure_session`. No manual effort needed.
+
+```bash
+npx @imayuur/contexthub deepsync
+```
 
 Connect MCP: `npx @imayuur/contexthub start` with `CONTEXTHUB_TOKEN` from `.contexthub/.auth-token` (do not commit the token).

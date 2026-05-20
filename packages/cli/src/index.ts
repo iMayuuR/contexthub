@@ -22,6 +22,7 @@ import { compactCommand } from './commands/compact';
 import { ciCommand } from './commands/ci';
 import { blastRadiusCommand } from './commands/blast-radius';
 import { exportMemoriesCommand } from './commands/export-memories';
+import { deepsyncCommand } from './commands/deepsync';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -236,6 +237,15 @@ program
   .option('--passphrase <phrase>', 'Passphrase to encrypt the exported bundle')
   .action(async (options) => {
     await exportMemoriesCommand(options);
+  });
+
+// DeepSync — one-command repo intelligence
+program
+  .command('deepsync')
+  .description('🧠 DeepSync — Scan your entire repo and build a complete knowledge graph in one shot')
+  .option('--force', 'Force a full re-scan even if recently synced')
+  .action(async (options) => {
+    await deepsyncCommand(options);
   });
 
 program.parse();

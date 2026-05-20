@@ -66,6 +66,25 @@ Secrets are auto-redacted; storage is AES-256-GCM encrypted.
 | `contexthub benchmark` | Run performance benchmarks |
 | `contexthub ci` | Non-interactive CI diagnostics |
 | `contexthub blast-radius <files>` | Compute transitive blast radius |
+| `contexthub deepsync` | 🧠 One-command repo intelligence scan |
+| `contexthub deepsync --force` | Force full re-scan |
+
+---
+
+## 🧠 DeepSync — Instant Repo Intelligence
+
+```bash
+npx @imayuur/contexthub deepsync
+```
+
+DeepSync scans your entire repository in one command:
+- **Code Analysis** — Parses all source files, indexes symbols and imports
+- **Documentation** — Ingests all markdown files into semantic memory
+- **Git Mining** — Analyzes commit history, identifies hot files
+- **Embeddings** — Generates vector embeddings for semantic search
+- **Report** — Writes `DEEPSYNC.md` summary to `.contexthub/`
+
+After the initial scan, context **auto-updates every session** via `ensure_session`. No manual effort needed.
 
 ---
 

@@ -37,6 +37,25 @@ npx -y @imayuur/contexthub setup
 
 ---
 
+## 🧠 Step 1.5: DeepSync — Build Complete Repo Intelligence
+
+After setup, run DeepSync once to give the AI agent total codebase awareness:
+
+```bash
+npx @imayuur/contexthub deepsync
+```
+
+### What this does:
+- Parses all source files across 15+ languages → builds a knowledge graph of symbols and imports
+- Ingests all markdown documentation → stores in searchable semantic memory
+- Mines git commit history → identifies hot files and recent focus areas
+- Generates vector embeddings for semantic search across all memories
+- Writes a rich `DEEPSYNC.md` intelligence report to `.contexthub/`
+
+> **Auto-sync:** After the initial scan, the knowledge graph is automatically updated on every `ensure_session` call. Only changed files are re-analyzed — zero manual effort.
+
+---
+
 ## 🔑 Step 2: Retrieve Authentication and Configuration
 
 To communicate with the ContextHub MCP server, you need to read the generated token and use it for authentication.

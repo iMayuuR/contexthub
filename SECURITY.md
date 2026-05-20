@@ -308,6 +308,23 @@ rm -rf .contexthub
 
 ---
 
+## DeepSync Security
+
+The **DeepSync** feature (`contexthub deepsync`) was security-audited upon implementation. 6 additional findings were identified and remediated:
+
+| ID | Finding | Risk | Fix |
+|----|---------|------|-----|
+| DS-01 | Missing symlink protection in markdown scanner | Path traversal via symlinks | `lstatSync` + `isSymbolicLink()` skip |
+| DS-02 | Missing sensitive file exclusion in markdown scanner | Data leakage | `isSensitiveFile()` check |
+| DS-03 | Missing path boundary validation for doc memories | Path traversal | `validatePath()` before read |
+| DS-04 | Unsanitized error messages in CLI output | Path leakage | Regex sanitization `[path]` |
+| DS-05 | Missing content redaction for doc memories | Secrets in memory | `redactSensitive()` before save |
+| DS-06 | Missing repo boundary check in recursive scanner | Directory traversal | `resolve()` + `startsWith()` |
+
+DeepSync inherits all existing security controls: AES-256-GCM encryption, atomic writes, file size limits, and sensitive file exclusion.
+
+---
+
 ## Compliance Notes
 
 | Standard | Status |

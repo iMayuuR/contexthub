@@ -30,6 +30,7 @@ ContextHub is a **local-first, privacy-focused AI memory and context orchestrati
 - **🌿 Git Integration** — Automatically maps memories to branches, authors, commit hashes, and file diffs
 - **📂 Multi-Root Support** — Standard multi-root workspace configs limit file indexing strictly to active folders
 - **📚 Docs Ingest** — Ingest markdown directories and PDFs directly into semantic memory
+- **🧠 DeepSync** — One command to scan your entire repo (code + docs + git) and build a complete knowledge graph with auto-updates
 - **🌐 Local-First** — Zero telemetry and zero external network calls. Your code and memories never leave your workstation
 
 ---
@@ -61,6 +62,23 @@ Configure your AI agent to connect to ContextHub as an MCP server via stdio tran
 
 ---
 
+## 🧠 DeepSync — One Command, Total Repo Awareness
+
+```bash
+npx @imayuur/contexthub deepsync
+```
+
+DeepSync performs a deep scan of your entire repository in one shot:
+- **📂 Code Analysis** — Parses all source files across 15+ languages, indexes symbols and import relationships
+- **📄 Documentation** — Ingests all markdown files into searchable, semantic memory
+- **🔀 Git Mining** — Analyzes commit history, identifies hot files and recent focus areas
+- **🔢 Embeddings** — Generates vector embeddings for semantic search across all memories
+- **📊 Report** — Writes a rich `DEEPSYNC.md` summary to `.contexthub/`
+
+After the initial scan, ContextHub **auto-updates incrementally** on every `ensure_session` call — only changed files are re-analyzed. Zero manual effort.
+
+---
+
 ## Usage Examples
 
 ### CLI Commands
@@ -89,6 +107,10 @@ contexthub watch
 
 # Launch interactive dashboard
 contexthub dashboard
+
+# DeepSync — one-command repo intelligence
+contexthub deepsync
+contexthub deepsync --force    # force full re-scan
 
 # Server lifecycle
 contexthub start --port 3000
@@ -131,7 +153,7 @@ contexthub/
 ├── packages/              # 14 packages
 │   ├── shared-types/      # TypeScript interfaces (Session, MemoryEntry, CodeGraph)
 │   ├── core/              # Storage, security, RRF query, config, limits
-│   ├── cli/               # 24 CLI commands (setup, dashboard, watch, query, etc.)
+│   ├── cli/               # 25 CLI commands (setup, deepsync, dashboard, watch, query, etc.)
 │   ├── mcp-server/        # MCP protocol server (35+ tools, hardened)
 │   ├── knowledge-graph/   # Code graph: god-nodes, communities, snapshots, reports
 │   ├── vector-engine/     # Embeddings: local bigram TF-IDF, optional transformers
@@ -155,7 +177,8 @@ contexthub/
     ├── server.pid         # Process ID for server management
     ├── graph/             # 🔐 Encrypted code knowledge graph
     ├── embeddings/        # Vector embeddings
-    └── GRAPH_REPORT.md    # Auto-generated dependency report
+    ├── GRAPH_REPORT.md    # Auto-generated dependency report
+    └── DEEPSYNC.md        # 🧠 DeepSync intelligence report
 ```
 
 ### How It Works
@@ -288,7 +311,7 @@ node packages/cli/dist/index.js --help
 |---------|---------|
 | `shared-types` | TypeScript interfaces (Session, MemoryEntry, CodeGraph) |
 | `core` | Storage, security, RRF query, config, contexthub-ignore, limits |
-| `cli` | 24 CLI commands (setup, dashboard, watch, query, etc.) |
+| `cli` | 25 CLI commands (setup, deepsync, dashboard, watch, query, etc.) |
 | `mcp-server` | MCP protocol with 35+ tools, resources, prompts |
 | `knowledge-graph` | Graph build/patch, god-nodes, communities, reports, snapshots |
 | `vector-engine` | Local bigram TF-IDF embeddings, optional transformers |
@@ -311,6 +334,7 @@ All features, optimizations, and unit/integration tests are 100% complete.
 
 - [x] Web Dashboard for memory visualization
 - [x] Comprehensive test suite
+- [x] 🧠 DeepSync — one-command repo intelligence with auto-sync
 - [ ] Electron desktop app with system tray
 - [ ] WebSocket transport for MCP
 - [ ] Cloud sync with E2E encryption

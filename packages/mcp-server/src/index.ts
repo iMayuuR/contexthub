@@ -272,25 +272,48 @@ async function ensureSession(agent: string, forceNew: boolean = false) {
     }
   }
 
-  // Generate a graph snapshot at the start of the session
+  // DeepSync auto-update: incrementally patch graph with changed files
   let graphSnapshotId = undefined;
+  let deepSyncAutoUpdate = false;
   try {
-    // Update graph first to ensure snapshot is fresh
-    await updateKnowledgeGraph().catch(() => {});
     const graphManager = new CodeGraphManager(repoPath);
+
+    // Try incremental patch first (faster than full rebuild)
+    if (gitIntegration) {
+      try {
+        const summary = await gitIntegration.getGitSummary();
+        const changedFiles = [
+          ...(summary.status?.files?.modified || []),
+          ...(summary.status?.files?.added || []),
+        ];
+        if (changedFiles.length > 0 && changedFiles.length <= 50) {
+          // Incremental patch — fast!
+          await graphManager.patchCodeGraph(changedFiles).catch(() => {});
+          deepSyncAutoUpdate = true;
+        } else {
+          // Full rebuild for large changes or no git
+          await updateKnowledgeGraph().catch(() => {});
+        }
+      } catch {
+        await updateKnowledgeGraph().catch(() => {});
+      }
+    } else {
+      await updateKnowledgeGraph().catch(() => {});
+    }
+
     graphSnapshotId = await graphManager.createGraphSnapshot();
     if (!graphSnapshotId) graphSnapshotId = undefined;
   } catch (e) {
     // ignore
   }
 
-  const sessionId = await ctx.createSession(sanitizedAgent, { autoMemory: true, graphSnapshotId });
+  const sessionId = await ctx.createSession(sanitizedAgent, { autoMemory: true, graphSnapshotId, deepSyncAutoUpdate });
   writeActiveSession(
     repoPath,
     { sessionId, agent: sanitizedAgent, startedAt: Date.now(), graphSnapshotId },
     sec
   );
-  return { sessionId, agent: sanitizedAgent, resumed: false };
+  return { sessionId, agent: sanitizedAgent, resumed: false, deepSyncAutoUpdate };
 }
 
 async function recordTurn(params: {

@@ -47,6 +47,14 @@ Skip: small talk, pure formatting, duplicate facts already stored.
 | Search by code | `search_memory_by_code` |
 | Full policy text | `get_agent_policy` |
 
+## 🧠 DeepSync — Instant Repo Intelligence
+
+Run `npx @imayuur/contexthub deepsync` once to build a complete knowledge graph of your codebase — code, docs, and git history. After that, context **auto-updates every session** via `ensure_session`. No manual effort needed.
+
+```bash
+npx @imayuur/contexthub deepsync
+```
+
 ## Dashboard
 
 ```bash
