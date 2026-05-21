@@ -26,6 +26,7 @@ export interface InstallResult {
   cursorRule: boolean;
   cursorMcp: boolean;
   cursorHooks: boolean;
+  claudeCodeMcp: boolean;
   agentsMd: boolean;
   claudeMd: boolean;
   canonicalPolicy: boolean;
@@ -77,11 +78,25 @@ function mergeMarkdownSection(filePath: string, section: string): void {
   }
 }
 
-function writeCursorMcp(mcpPath: string): void {
-  const contexthubServer = {
+function writeCursorMcp(mcpPath: string, repoPath: string): void {
+  // Read auth token if available
+  let authToken = '';
+  const tokenPath = join(repoPath, '.contexthub', '.auth-token');
+  if (existsSync(tokenPath)) {
+    try {
+      authToken = readFileSync(tokenPath, 'utf8').trim();
+    } catch {
+      // ignore
+    }
+  }
+
+  const contexthubServer: Record<string, unknown> = {
     command: 'npx',
     args: ['-y', '@imayuur/contexthub', 'start'],
   };
+  if (authToken) {
+    contexthubServer.env = { CONTEXTHUB_TOKEN: authToken };
+  }
 
   let config: { mcpServers?: Record<string, unknown> } = { mcpServers: {} };
   if (existsSync(mcpPath)) {
@@ -100,6 +115,43 @@ function writeCursorMcp(mcpPath: string): void {
   writeFileSync(mcpPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
 }
 
+function writeClaudeCodeMcp(claudeSettingsPath: string, repoPath: string): void {
+  // Read auth token if available
+  let authToken = '';
+  const tokenPath = join(repoPath, '.contexthub', '.auth-token');
+  if (existsSync(tokenPath)) {
+    try {
+      authToken = readFileSync(tokenPath, 'utf8').trim();
+    } catch {
+      // ignore
+    }
+  }
+
+  const contexthubServer: Record<string, unknown> = {
+    command: 'npx',
+    args: ['-y', '@imayuur/contexthub', 'start'],
+  };
+  if (authToken) {
+    contexthubServer.env = { CONTEXTHUB_TOKEN: authToken };
+  }
+
+  let config: Record<string, unknown> = {};
+  if (existsSync(claudeSettingsPath)) {
+    try {
+      config = JSON.parse(readFileSync(claudeSettingsPath, 'utf8'));
+    } catch {
+      config = {};
+    }
+  }
+
+  if (!config.mcpServers) {
+    config.mcpServers = {};
+  }
+  (config.mcpServers as Record<string, unknown>).contexthub = contexthubServer;
+
+  writeFileSync(claudeSettingsPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+}
+
 /**
  * Install agent rules, MCP config template, and Cursor hooks for secure auto-memory.
  */
@@ -111,6 +163,7 @@ export function installAgentIntegrations(
     cursorRule: false,
     cursorMcp: false,
     cursorHooks: false,
+    claudeCodeMcp: false,
     agentsMd: false,
     claudeMd: false,
     canonicalPolicy: false,
@@ -137,8 +190,14 @@ export function installAgentIntegrations(
   // Cursor MCP (no secrets in file — start loads .auth-token)
   const cursorDir = join(repoPath, '.cursor');
   mkdirSync(cursorDir, { recursive: true });
-  writeCursorMcp(join(cursorDir, 'mcp.json'));
+  writeCursorMcp(join(cursorDir, 'mcp.json'), repoPath);
   result.cursorMcp = true;
+
+  // Claude Code MCP
+  const claudeDir = join(repoPath, '.claude');
+  mkdirSync(claudeDir, { recursive: true });
+  writeClaudeCodeMcp(join(claudeDir, 'settings.local.json'), repoPath);
+  result.claudeCodeMcp = true;
 
   // Cursor hooks
   const hooksDir = join(cursorDir, 'hooks');

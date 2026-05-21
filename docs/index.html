@@ -51,7 +51,7 @@
     <!-- HERO -->
     <section class="cli-section hero-section" id="hero">
       <div class="hero-badges">
-        <span class="badge">v1.0.0</span>
+        <span class="badge">v1.0.2</span>
         <span class="badge">MIT</span>
         <span class="badge success-badge">70%-90% Token Savings</span>
         <span class="badge">AES-256-GCM</span>
@@ -69,7 +69,7 @@
         <div class="terminal-body">
           <p class="prompt"><span class="user">mcp@contexthub</span><span class="dir">:~/server$</span> <span id="typewriter"></span></p>
           <div class="terminal-output" id="hero-output">
-            <p class="success">ContextHub MCP Server v1.0.0 — online.</p>
+            <p class="success">ContextHub MCP Server v1.0.2 — online.</p>
             <p>stdio transport · encrypted memory · repo intelligence · semantic search.</p>
             <p>Agents connect via MCP — Claude Code, Cursor, and any compatible client.</p>
             <p class="warning">Security hardened — auto-redaction engaged.</p>
@@ -245,6 +245,17 @@
             <tr><td><code>contexthub stop</code></td><td>Stop MCP server cleanly</td></tr>
             <tr><td><code>contexthub deepsync</code></td><td>🧠 One-command repo intelligence scan</td></tr>
             <tr><td><code>contexthub deepsync --force</code></td><td>Force full re-scan</td></tr>
+            <tr><td><code>contexthub query "text"</code></td><td>Unified context query (memory + graph + git)</td></tr>
+            <tr><td><code>contexthub context --query "text"</code></td><td>Get relevant context bundle</td></tr>
+            <tr><td><code>contexthub watch</code></td><td>Watch for file changes and auto-update</td></tr>
+            <tr><td><code>contexthub doctor</code></td><td>Health check for ContextHub installation</td></tr>
+            <tr><td><code>contexthub benchmark</code></td><td>Run performance benchmarks</td></tr>
+            <tr><td><code>contexthub report</code></td><td>Generate project intelligence report</td></tr>
+            <tr><td><code>contexthub export-graph</code></td><td>Export code knowledge graph</td></tr>
+            <tr><td><code>contexthub compact --archive-age 30</code></td><td>Archive old memories</td></tr>
+            <tr><td><code>contexthub status</code></td><td>Show MCP server and memory status</td></tr>
+            <tr><td><code>contexthub blast-radius &lt;files&gt;</code></td><td>Analyze impact of file changes</td></tr>
+            <tr><td><code>contexthub ci</code></td><td>Run ContextHub in CI/CD mode</td></tr>
           </tbody>
         </table>
       </div>
@@ -326,6 +337,24 @@
             <tr><td><code>update_knowledge_graph</code></td><td>Refresh code analysis</td></tr>
             <tr><td><code>list_skills</code> / <code>load_skill</code></td><td>Built-in skills system</td></tr>
             <tr><td><code>run_skill_command</code></td><td>Execute skill commands</td></tr>
+            <tr><td><code>ensure_session</code></td><td>Start or resume a coding session</td></tr>
+            <tr><td><code>record_turn</code></td><td>Record prompt/response turn to memory</td></tr>
+            <tr><td><code>get_agent_policy</code></td><td>Get agent auto-memory policy</td></tr>
+            <tr><td><code>get_code_graph_stats</code></td><td>Code knowledge graph statistics</td></tr>
+            <tr><td><code>get_related_symbols</code></td><td>Find related code symbols</td></tr>
+            <tr><td><code>get_blast_radius</code></td><td>Analyze change impact radius</td></tr>
+            <tr><td><code>trace_code_path</code></td><td>Trace dependency path between symbols</td></tr>
+            <tr><td><code>search_memory_by_code</code></td><td>Search memories by file or symbol</td></tr>
+            <tr><td><code>get_god_nodes</code></td><td>Find most-connected code nodes</td></tr>
+            <tr><td><code>get_graph_communities</code></td><td>Detect code module communities</td></tr>
+            <tr><td><code>diff_code_graph</code></td><td>Diff code graph between snapshots</td></tr>
+            <tr><td><code>what_changed_since_session</code></td><td>Changes since a session started</td></tr>
+            <tr><td><code>contexthub_query</code></td><td>Unified query across all data sources</td></tr>
+            <tr><td><code>get_context_bundle</code></td><td>Get comprehensive context bundle</td></tr>
+            <tr><td><code>explain_symbol</code></td><td>Explain a code symbol in context</td></tr>
+            <tr><td><code>get_memories_for_commit</code></td><td>Get memories linked to a git commit</td></tr>
+            <tr><td><code>ingest_docs</code></td><td>Ingest markdown documentation</td></tr>
+            <tr><td><code>search_docs</code></td><td>Search ingested documentation</td></tr>
           </tbody>
         </table>
       </div>
@@ -414,7 +443,7 @@
         <p class="comment"># Env: CONTEXTHUB_TOKEN=&lt;your-auth-token&gt;</p>
       </div>
 
-      <h3 class="subsection-title">&gt; 4. Claude Code (claudecode.config.json)</h3>
+      <h3 class="subsection-title">&gt; 4. Claude Code (.claude/settings.local.json)</h3>
       <pre class="arch-tree"><code>{
   "mcpServers": {
     "contexthub": {

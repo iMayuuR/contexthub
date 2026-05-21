@@ -38,6 +38,7 @@ import { SkillsManager } from '@imayuur/contexthub-skills';
 import { CodeGraphManager, writeGraphReport } from '@imayuur/contexthub-knowledge-graph';
 import { DocsIngester } from '@imayuur/contexthub-docs-ingest';
 import type { MemoryEntry, Session } from '@imayuur/contexthub-shared-types';
+import { z } from 'zod';
 import { getAgentPolicyMarkdown, AGENT_POLICY_VERSION } from './agent-policy';
 import {
   readActiveSession,
@@ -1005,166 +1006,345 @@ async function main() {
 
   const server = new McpServer({
     name: 'contexthub',
-    version: '1.0.0'
+    version: '1.0.2'
   });
 
   // Register resources and prompts
   registerResourcesAndPrompts(server);
 
-  // Register all tools (wrapped with safe error handling)
-  server.tool('get_project_context', {}, safeHandler(getProjectContext));
+  // Register all tools (wrapped with safe error handling, Zod schemas for SDK >=1.29)
 
-  server.tool('get_agent_policy', {}, safeHandler(getAgentPolicy));
+  server.tool(
+    'get_project_context',
+    'Get project metadata, recent sessions, memory stats, active session info, code graph stats, and auto-memory instructions. Call this at the start of every coding session before answering.',
+    {},
+    safeHandler(getProjectContext)
+  );
 
-  server.tool('ensure_session', {
-    agent: { type: 'string' },
-    forceNew: { type: 'boolean', optional: true },
-  }, safeHandler(async ({ agent, forceNew }: any) => ensureSession(agent, Boolean(forceNew))));
+  server.tool(
+    'get_agent_policy',
+    'Retrieve the full ContextHub auto-memory policy document. Contains the required workflow, security rules, and tool usage guide for agents.',
+    {},
+    safeHandler(getAgentPolicy)
+  );
 
-  server.tool('record_turn', {
-    agent: { type: 'string' },
-    sessionId: { type: 'string', optional: true },
-    promptSummary: { type: 'string' },
-    responseSummary: { type: 'string' },
-    memoryType: { type: 'string', optional: true },
-    tags: { type: 'array', optional: true },
-    relatedPaths: { type: 'array', optional: true },
-    relatedSymbols: { type: 'array', optional: true },
-    commitHash: { type: 'string', optional: true },
-    branch: { type: 'string', optional: true },
-  }, safeHandler(async (args: any) => recordTurn(args)));
+  server.tool(
+    'ensure_session',
+    'Start or resume a coding session. Call this at the beginning of every interaction. If a session for the given agent already exists, it will be resumed; otherwise a new one is created. Also triggers an incremental DeepSync update of the knowledge graph.',
+    {
+      agent: z.string().describe('Agent identifier, e.g. "cursor", "claude-code", "windsurf", "copilot", "codex"'),
+      forceNew: z.boolean().optional().describe('If true, always creates a new session instead of resuming an existing one'),
+    },
+    safeHandler(async ({ agent, forceNew }: any) => ensureSession(agent, Boolean(forceNew)))
+  );
 
-  server.tool('search_memory', {
-    query: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ query, limit }: any) => searchMemory(query, limit)));
+  server.tool(
+    'record_turn',
+    'Record a prompt/response turn to encrypted memory. Call this after each meaningful interaction — especially for architectural decisions, bug fixes, non-obvious conventions, security-relevant behavior, or breaking changes. Skip for small talk or formatting-only changes.',
+    {
+      agent: z.string().describe('Agent identifier, e.g. "cursor", "claude-code", "copilot"'),
+      sessionId: z.string().optional().describe('Session UUID. If omitted, the active session for this agent is used.'),
+      promptSummary: z.string().describe('Concise summary of the user prompt or request'),
+      responseSummary: z.string().describe('Concise summary of the AI response or action taken'),
+      memoryType: z.string().optional().describe('Memory type for the response: "response", "decision", "architecture", "bugfix", etc.'),
+      tags: z.array(z.string()).optional().describe('Additional tags to categorize this turn'),
+      relatedPaths: z.array(z.string()).optional().describe('Repo-relative file paths related to this turn'),
+      relatedSymbols: z.array(z.string()).optional().describe('Code symbols (function names, class names) related to this turn'),
+      commitHash: z.string().optional().describe('Git commit hash associated with this turn'),
+      branch: z.string().optional().describe('Git branch name associated with this turn'),
+    },
+    safeHandler(async (args: any) => recordTurn(args))
+  );
 
-  server.tool('save_session', {
-    agent: { type: 'string' },
-    metadata: { type: 'object', optional: true }
-  }, safeHandler(async ({ agent, metadata }: any) => saveSession(agent, metadata)));
+  server.tool(
+    'search_memory',
+    'Full-text search across all encrypted memories. Searches content and tags. Use this for keyword-based lookups.',
+    {
+      query: z.string().describe('Search query string to match against memory content and tags'),
+      limit: z.number().optional().describe('Maximum number of results to return (default: 20, max: 100)'),
+    },
+    safeHandler(async ({ query, limit }: any) => searchMemory(query, limit))
+  );
 
-  server.tool('end_session', {
-    sessionId: { type: 'string' }
-  }, safeHandler(async ({ sessionId }: any) => endSessionWithCleanup(sessionId)));
+  server.tool(
+    'save_session',
+    'Create a new coding session. Prefer ensure_session for most use cases — this is a lower-level API.',
+    {
+      agent: z.string().describe('Agent identifier, e.g. "cursor", "claude-code"'),
+      metadata: z.record(z.string(), z.unknown()).optional().describe('Optional metadata to attach to the session'),
+    },
+    safeHandler(async ({ agent, metadata }: any) => saveSession(agent, metadata))
+  );
 
-  server.tool('save_memory', {
-    sessionId: { type: 'string' },
-    memory: { type: 'object' }
-  }, safeHandler(async ({ sessionId, memory }: any) => saveMemory(sessionId, memory)));
+  server.tool(
+    'end_session',
+    'End an active session. Automatically generates a session summary memory from all recorded turns, then cleans up the active session state.',
+    {
+      sessionId: z.string().describe('The UUID of the session to end'),
+    },
+    safeHandler(async ({ sessionId }: any) => endSessionWithCleanup(sessionId))
+  );
 
-  server.tool('summarize_repo', {}, safeHandler(summarizeRepo));
+  server.tool(
+    'save_memory',
+    'Store a single memory entry with encryption. Use record_turn for conversation turns — this is for standalone notes, decisions, or observations.',
+    {
+      sessionId: z.string().describe('The UUID of the session to associate this memory with'),
+      memory: z.object({
+        type: z.string().optional().describe('Memory type: "manual", "decision", "architecture", "bugfix", "prompt", "response", "summary", "commit"'),
+        content: z.string().describe('The memory content text (max 50KB). Secrets are auto-redacted.'),
+        tags: z.array(z.string()).optional().describe('Tags for categorization'),
+        relatedPaths: z.array(z.string()).optional().describe('Repo-relative file paths'),
+        relatedSymbols: z.array(z.string()).optional().describe('Code symbols related to this memory'),
+        commitHash: z.string().optional().describe('Associated git commit hash'),
+        branch: z.string().optional().describe('Associated git branch'),
+      }).describe('Memory data object'),
+    },
+    safeHandler(async ({ sessionId, memory }: any) => saveMemory(sessionId, memory))
+  );
 
-  server.tool('get_related_files', {
-    filePath: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ filePath, limit }: any) => getRelatedFiles(filePath, limit)));
+  server.tool(
+    'summarize_repo',
+    'Generate a high-level repository summary including project metadata, memory statistics grouped by type, and recent activity timeline.',
+    {},
+    safeHandler(summarizeRepo)
+  );
 
-  server.tool('get_recent_changes', {
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ limit }: any) => getRecentChanges(limit)));
+  server.tool(
+    'get_related_files',
+    'Find files that import or reference a given file path. Uses static analysis of import/export statements from the code graph.',
+    {
+      filePath: z.string().describe('Repo-relative file path to find related files for, e.g. "src/utils/auth.ts"'),
+      limit: z.number().optional().describe('Maximum number of related files to return (default: 5, max: 50)'),
+    },
+    safeHandler(async ({ filePath, limit }: any) => getRelatedFiles(filePath, limit))
+  );
 
-  server.tool('get_architecture_summary', {}, safeHandler(getArchitectureSummary));
+  server.tool(
+    'get_recent_changes',
+    'Get recent git commits with messages, authors, and dates. Also includes working directory status (staged, modified, untracked files).',
+    {
+      limit: z.number().optional().describe('Maximum number of recent commits to return (default: 10, max: 50)'),
+    },
+    safeHandler(async ({ limit }: any) => getRecentChanges(limit))
+  );
 
-  server.tool('semantic_search', {
-    query: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ query, limit }: any) => semanticSearch(query, limit)));
+  server.tool(
+    'get_architecture_summary',
+    'Analyze the repository architecture: total files, language distribution, symbol counts, and the most highly-connected files in the dependency graph.',
+    {},
+    safeHandler(getArchitectureSummary)
+  );
 
-  server.tool('update_knowledge_graph', {}, safeHandler(updateKnowledgeGraph));
+  server.tool(
+    'semantic_search',
+    'Vector similarity search across all memories using embeddings. Better than search_memory for natural language queries where exact keywords may not match.',
+    {
+      query: z.string().describe('Natural language search query'),
+      limit: z.number().optional().describe('Maximum number of results (default: 10, max: 100)'),
+    },
+    safeHandler(async ({ query, limit }: any) => semanticSearch(query, limit))
+  );
 
-  server.tool('list_skills', {}, safeHandler(listSkills));
+  server.tool(
+    'update_knowledge_graph',
+    'Rebuild the code knowledge graph by re-parsing all source files. Also regenerates the GRAPH_REPORT.md with community analysis and god node detection.',
+    {},
+    safeHandler(updateKnowledgeGraph)
+  );
 
-  server.tool('load_skill', {
-    skillName: { type: 'string' }
-  }, safeHandler(async ({ skillName }: any) => loadSkill(skillName)));
+  server.tool(
+    'list_skills',
+    'List all available built-in skills with their names, descriptions, versions, commands, and trigger keywords.',
+    {},
+    safeHandler(listSkills)
+  );
 
-  server.tool('run_skill_command', {
-    skillName: { type: 'string' },
-    commandName: { type: 'string' },
-    args: { type: 'object', optional: true }
-  }, safeHandler(async ({ skillName, commandName, args }: any) =>
-    runSkillCommand(skillName, commandName, args || {})));
+  server.tool(
+    'load_skill',
+    'Load a specific skill by name to see its full details including all available commands and descriptions.',
+    {
+      skillName: z.string().describe('Name of the skill to load, e.g. "architect", "debug", "review"'),
+    },
+    safeHandler(async ({ skillName }: any) => loadSkill(skillName))
+  );
 
-  server.tool('get_git_summary', {}, safeHandler(getGitSummary));
+  server.tool(
+    'run_skill_command',
+    'Execute a command from a built-in skill. Skills provide higher-level operations like architecture analysis, debugging helpers, and code review.',
+    {
+      skillName: z.string().describe('Name of the skill, e.g. "architect", "debug", "review"'),
+      commandName: z.string().describe('Command within the skill, e.g. "analyze", "find-similar", "review-changes"'),
+      args: z.record(z.string(), z.string()).optional().describe('Key-value arguments to pass to the skill command'),
+    },
+    safeHandler(async ({ skillName, commandName, args }: any) =>
+      runSkillCommand(skillName, commandName, args || {}))
+  );
 
-  server.tool('get_memories_for_commit', {
-    hash: { type: 'string' }
-  }, safeHandler(async ({ hash }: any) => getMemoriesForCommit(hash)));
+  server.tool(
+    'get_git_summary',
+    'Get a concise git repository summary: current branch, working directory status, and the 5 most recent commits.',
+    {},
+    safeHandler(getGitSummary)
+  );
 
-  server.tool('ingest_docs', {
-    paths: { type: 'object', optional: true }
-  }, safeHandler(async ({ paths }: any) => ingestDocs(paths)));
+  server.tool(
+    'get_memories_for_commit',
+    'Retrieve all memories that are linked to a specific git commit hash. Useful for understanding what decisions or context led to a particular commit.',
+    {
+      hash: z.string().describe('Git commit hash (full or abbreviated, e.g. "a1b2c3d")'),
+    },
+    safeHandler(async ({ hash }: any) => getMemoriesForCommit(hash))
+  );
 
-  server.tool('search_docs', {
-    query: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ query, limit }: any) => searchDocs(query, limit)));
+  server.tool(
+    'ingest_docs',
+    'Ingest markdown documentation files into searchable semantic memory with vector embeddings. By default ingests all .md files in the repo.',
+    {
+      paths: z.array(z.string()).optional().describe('Glob patterns for files to ingest, e.g. ["docs/**/*.md"]. Defaults to ["**/*.md"].'),
+    },
+    safeHandler(async ({ paths }: any) => ingestDocs(paths))
+  );
 
-  server.tool('get_code_graph_stats', {}, safeHandler(getCodeGraphStats));
+  server.tool(
+    'search_docs',
+    'Search through previously ingested documentation using semantic similarity. Documents must be ingested first with ingest_docs.',
+    {
+      query: z.string().describe('Search query for documentation'),
+      limit: z.number().optional().describe('Maximum number of results (default: 10, max: 100)'),
+    },
+    safeHandler(async ({ query, limit }: any) => searchDocs(query, limit))
+  );
 
-  server.tool('get_related_symbols', {
-    fileOrSymbol: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ fileOrSymbol, limit }: any) => getRelatedSymbols(fileOrSymbol, limit)));
+  server.tool(
+    'get_code_graph_stats',
+    'Get statistics about the code knowledge graph: node count, edge count, last update timestamp, and graph version.',
+    {},
+    safeHandler(getCodeGraphStats)
+  );
 
-  server.tool('get_blast_radius', {
-    fileOrSymbol: { type: 'string' },
-    depth: { type: 'number', optional: true }
-  }, safeHandler(async ({ fileOrSymbol, depth }: any) => getBlastRadius(fileOrSymbol, depth)));
+  server.tool(
+    'get_related_symbols',
+    'Find code symbols (functions, classes, types) related to a given file path or symbol name via the knowledge graph.',
+    {
+      fileOrSymbol: z.string().describe('File path or symbol name to find related symbols for, e.g. "src/auth.ts" or "AuthService"'),
+      limit: z.number().optional().describe('Maximum number of related symbols to return (default: 10, max: 100)'),
+    },
+    safeHandler(async ({ fileOrSymbol, limit }: any) => getRelatedSymbols(fileOrSymbol, limit))
+  );
 
-  server.tool('trace_code_path', {
-    fromId: { type: 'string' },
-    toId: { type: 'string' },
-    maxHops: { type: 'number', optional: true }
-  }, safeHandler(async ({ fromId, toId, maxHops }: any) => traceCodePath(fromId, toId, maxHops)));
+  server.tool(
+    'get_blast_radius',
+    'Analyze the impact radius of changes to a file or symbol. Returns all nodes and edges within N hops in the dependency graph — useful for understanding what might break.',
+    {
+      fileOrSymbol: z.string().describe('File path or symbol name to analyze, e.g. "src/core/encryption.ts"'),
+      depth: z.number().optional().describe('How many hops to traverse in the dependency graph (default: 2, max: 5)'),
+    },
+    safeHandler(async ({ fileOrSymbol, depth }: any) => getBlastRadius(fileOrSymbol, depth))
+  );
 
-  server.tool('search_memory_by_code', {
-    fileOrSymbol: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ fileOrSymbol, limit }: any) => searchMemoryByCode(fileOrSymbol, limit)));
+  server.tool(
+    'trace_code_path',
+    'Trace the dependency path between two code symbols or files in the knowledge graph. Returns the shortest chain of hops connecting them.',
+    {
+      fromId: z.string().describe('Starting file path or symbol name'),
+      toId: z.string().describe('Target file path or symbol name'),
+      maxHops: z.number().optional().describe('Maximum number of hops to search (default: 5, max: 10)'),
+    },
+    safeHandler(async ({ fromId, toId, maxHops }: any) => traceCodePath(fromId, toId, maxHops))
+  );
 
-  server.tool('get_god_nodes', {
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ limit }: any) => getGodNodes(limit)));
+  server.tool(
+    'search_memory_by_code',
+    'Search memories by associated file path or code symbol. Finds memories that were tagged with specific files or symbols via relatedPaths/relatedSymbols.',
+    {
+      fileOrSymbol: z.string().describe('File path or symbol name to search memories for'),
+      limit: z.number().optional().describe('Maximum number of results (default: 10, max: 100)'),
+    },
+    safeHandler(async ({ fileOrSymbol, limit }: any) => searchMemoryByCode(fileOrSymbol, limit))
+  );
 
-  server.tool('get_graph_communities', {}, safeHandler(getGraphCommunities));
+  server.tool(
+    'get_god_nodes',
+    'Find the most highly-connected nodes in the code knowledge graph ("god objects"). These are files or symbols with the most dependencies — potential refactoring targets.',
+    {
+      limit: z.number().optional().describe('Maximum number of god nodes to return (default: 10, max: 100)'),
+    },
+    safeHandler(async ({ limit }: any) => getGodNodes(limit))
+  );
 
-  server.tool('diff_code_graph', {
-    baseSnapshotId: { type: 'string', optional: true },
-    headSnapshotId: { type: 'string', optional: true }
-  }, safeHandler(async ({ baseSnapshotId, headSnapshotId }: any) => diffCodeGraphMcp(baseSnapshotId, headSnapshotId)));
+  server.tool(
+    'get_graph_communities',
+    'Detect loosely-coupled communities (modules) in the code knowledge graph. Returns groups of files that are tightly connected internally but loosely connected to other groups.',
+    {},
+    safeHandler(getGraphCommunities)
+  );
 
-  server.tool('what_changed_since_session', {
-    sessionId: { type: 'string' }
-  }, safeHandler(async ({ sessionId }: any) => whatChangedSinceSessionMcp(sessionId)));
+  server.tool(
+    'diff_code_graph',
+    'Compare two snapshots of the code knowledge graph to see what nodes and edges were added or removed. Useful for tracking structural changes over time.',
+    {
+      baseSnapshotId: z.string().optional().describe('Snapshot ID for the base (older) graph. If omitted, uses an empty graph.'),
+      headSnapshotId: z.string().optional().describe('Snapshot ID for the head (newer) graph. If omitted, uses the current live graph.'),
+    },
+    safeHandler(async ({ baseSnapshotId, headSnapshotId }: any) => diffCodeGraphMcp(baseSnapshotId, headSnapshotId))
+  );
 
-  server.tool('contexthub_query', {
-    query: { type: 'string' },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async ({ query, limit }: any) => contexthubQueryMcp(query, limit)));
+  server.tool(
+    'what_changed_since_session',
+    'Get a comprehensive diff of everything that changed since a specific session started: code graph changes, new memories recorded, and git commits.',
+    {
+      sessionId: z.string().describe('The UUID of the session to compare against'),
+    },
+    safeHandler(async ({ sessionId }: any) => whatChangedSinceSessionMcp(sessionId))
+  );
 
-  server.tool('get_context_bundle', {
-    query: { type: 'string', optional: true },
-    path: { type: 'string', optional: true },
-    sessionId: { type: 'string', optional: true },
-    limit: { type: 'number', optional: true }
-  }, safeHandler(async (args: any) => {
-    if (!args.query && !args.path && !args.sessionId) {
-      throw new Error('Must provide at least one of query, path, or sessionId');
-    }
-    return getContextBundleMcp(args.query, args.path);
-  }));
+  server.tool(
+    'contexthub_query',
+    'Unified query across all data sources: memories, code graph, vector search, and git history. Returns ranked results using Reciprocal Rank Fusion (RRF). The best general-purpose search tool.',
+    {
+      query: z.string().describe('Natural language query to search across all data sources'),
+      limit: z.number().optional().describe('Maximum number of results (default: 10, max: 100)'),
+    },
+    safeHandler(async ({ query, limit }: any) => contexthubQueryMcp(query, limit))
+  );
 
-  server.tool('explain_symbol', {
-    symbol: { type: 'string' },
-    path: { type: 'string', optional: true }
-  }, safeHandler(async ({ symbol }: any) => explainSymbolMcp(symbol)));
+  server.tool(
+    'get_context_bundle',
+    'Get a comprehensive context bundle combining memories, code graph data, and git information relevant to a query or file path. Ideal for providing rich context before answering a question.',
+    {
+      query: z.string().optional().describe('Natural language query to build context for'),
+      path: z.string().optional().describe('File path to build context around'),
+      sessionId: z.string().optional().describe('Session ID to scope context to'),
+      limit: z.number().optional().describe('Maximum number of items per source'),
+    },
+    safeHandler(async (args: any) => {
+      if (!args.query && !args.path && !args.sessionId) {
+        throw new Error('Must provide at least one of query, path, or sessionId');
+      }
+      return getContextBundleMcp(args.query, args.path);
+    })
+  );
+
+  server.tool(
+    'explain_symbol',
+    'Get a detailed explanation of a code symbol: its definition, usages, dependencies, and related memories. Useful for understanding unfamiliar code.',
+    {
+      symbol: z.string().describe('The code symbol to explain, e.g. "SecurityManager", "safeHandler", "ContextHubCore"'),
+      path: z.string().optional().describe('File path hint to disambiguate symbols with the same name'),
+    },
+    safeHandler(async ({ symbol }: any) => explainSymbolMcp(symbol))
+  );
 
   if (process.env.CONTEXTHUB_ENABLE_PDF === '1') {
-    server.tool('ingest_pdf', {
-      filePath: { type: 'string' }
-    }, safeHandler(async ({ filePath }: any) => ingestPdf(filePath)));
+    server.tool(
+      'ingest_pdf',
+      'Extract text from a PDF file and save it to encrypted memory. Requires CONTEXTHUB_ENABLE_PDF=1 environment variable.',
+      {
+        filePath: z.string().describe('Path to the PDF file to ingest'),
+      },
+      safeHandler(async ({ filePath }: any) => ingestPdf(filePath))
+    );
   }
 
   const transport = new StdioServerTransport();

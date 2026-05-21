@@ -1,4 +1,4 @@
 module.exports = {
   // ContextHub configuration
-  // See https://github.com/contexthub/contexthub for options:
+  // See https://github.com/iMayuuR/contexthub for options:
 };

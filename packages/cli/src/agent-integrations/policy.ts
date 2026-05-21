@@ -71,7 +71,7 @@ export function buildAgentsMdSection(): string {
 
 ${buildCanonicalPolicy()}
 
-Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using \`npx @contexthub/cli start\`.
+Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using \`npx @imayuur/contexthub start\`.
 
 `;
 }
@@ -83,7 +83,7 @@ export function buildClaudeMdSection(): string {
 
 ${buildCanonicalPolicy()}
 
-Connect MCP: \`npx @contexthub/cli start\` with \`CONTEXTHUB_TOKEN\` from \`.contexthub/.auth-token\` (do not commit the token).
+Connect MCP: \`npx @imayuur/contexthub start\` with \`CONTEXTHUB_TOKEN\` from \`.contexthub/.auth-token\` (do not commit the token).
 
 `;
 }

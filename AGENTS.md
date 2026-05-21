@@ -63,4 +63,4 @@ npx @imayuur/contexthub dashboard
 # Opens at http://127.0.0.1:3847
 ```
 
-Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using `npx @imayuur/contexthub start` (or `npx @imayuur/contexthub start`).
+Supported: **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot**, **Codex**, and any **MCP** client using `npx @imayuur/contexthub start`.

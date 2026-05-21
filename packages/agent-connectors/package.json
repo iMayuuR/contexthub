@@ -1,6 +1,6 @@
 {
   "name": "@imayuur/contexthub-agent-connectors",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AI agent adapters for ContextHub",
   "license": "MIT",
   "repository": {
@@ -25,8 +25,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@imayuur/contexthub-core": "^1.0.1",
-    "@imayuur/contexthub-shared-types": "^1.0.1"
+    "@imayuur/contexthub-core": "^1.0.2",
+    "@imayuur/contexthub-shared-types": "^1.0.2"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

@@ -1,6 +1,6 @@
 {
   "name": "@imayuur/contexthub-plugin-pdf",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Optional PDF ingest plugin for ContextHub",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "pdf-parse": "^1.1.1",
-    "@imayuur/contexthub-core": "^1.0.1"
+    "@imayuur/contexthub-core": "^1.0.2"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

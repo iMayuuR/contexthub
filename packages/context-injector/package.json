@@ -1,6 +1,6 @@
 {
   "name": "@imayuur/contexthub-context-injector",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Context retrieval and prompt enhancement for ContextHub",
   "license": "MIT",
   "repository": {
@@ -25,10 +25,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@imayuur/contexthub-core": "^1.0.1",
-    "@imayuur/contexthub-repo-parser": "^1.0.1",
-    "@imayuur/contexthub-shared-types": "^1.0.1",
-    "@imayuur/contexthub-vector-engine": "^1.0.1"
+    "@imayuur/contexthub-core": "^1.0.2",
+    "@imayuur/contexthub-repo-parser": "^1.0.2",
+    "@imayuur/contexthub-shared-types": "^1.0.2",
+    "@imayuur/contexthub-vector-engine": "^1.0.2"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
